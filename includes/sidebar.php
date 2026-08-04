@@ -1,9 +1,13 @@
+<?php
+// الحصول على اسم الملف الحالي لتحديد الرابط النشط تلقائياً
+$currentPage = basename($_SERVER['PHP_SELF']);
+?>
 <!--begin::Sidebar-->
 <aside class="app-sidebar bg-body-secondary shadow" data-bs-theme="dark">
   <!--begin::Sidebar Brand-->
   <div class="sidebar-brand">
     <!--begin::Brand Link-->
-    <a href="/index.php" class="brand-link">
+    <a href="index.php" class="brand-link">
       <!--begin::Brand Image-->
       <i class="bi bi-activity text-danger fs-3 me-2"></i>
       <!--end::Brand Image-->
@@ -29,7 +33,7 @@
       >
         <!-- الرئيسية -->
         <li class="nav-item">
-          <a href="/index.php" class="nav-link active">
+          <a href="index.php" class="nav-link <?= ($currentPage == 'index.php') ? 'active' : '' ?>">
             <i class="nav-icon bi bi-speedometer"></i>
             <p>لوحة التحكم</p>
           </a>
@@ -37,7 +41,7 @@
 
         <!-- تسجيل الدخول السريع -->
         <li class="nav-item">
-          <a href="/check-in.php" class="nav-link">
+          <a href="check-in.php" class="nav-link <?= ($currentPage == 'check-in.php') ? 'active' : '' ?>">
             <i class="nav-icon bi bi-qr-code-scan text-success"></i>
             <p>تسجيل دخول عضو</p>
           </a>
@@ -46,8 +50,9 @@
         <li class="nav-header">إدارة الجيم</li>
 
         <!-- إدارة الأعضاء -->
-        <li class="nav-item">
-          <a href="#" class="nav-link">
+        <?php $membersPages = ['members.php', 'add-member.php', 'expiring.php', 'member-edit.php']; ?>
+        <li class="nav-item <?= in_array($currentPage, $membersPages) ? 'menu-open' : '' ?>">
+          <a href="#" class="nav-link <?= in_array($currentPage, $membersPages) ? 'active' : '' ?>">
             <i class="nav-icon bi bi-people-fill"></i>
             <p>
               الأعضاء
@@ -56,19 +61,19 @@
           </a>
           <ul class="nav nav-treeview">
             <li class="nav-item">
-              <a href="/members-list.php" class="nav-link">
+              <a href="members.php" class="nav-link <?= ($currentPage == 'members.php') ? 'active' : '' ?>">
                 <i class="nav-icon bi bi-circle"></i>
                 <p>كل الأعضاء</p>
               </a>
             </li>
             <li class="nav-item">
-              <a href="/member-add.php" class="nav-link">
+              <a href="add-member.php" class="nav-link <?= ($currentPage == 'add-member.php') ? 'active' : '' ?>">
                 <i class="nav-icon bi bi-circle"></i>
                 <p>إضافة عضو جديد</p>
               </a>
             </li>
             <li class="nav-item">
-              <a href="/expiring-subscriptions.php" class="nav-link">
+              <a href="expiring.php" class="nav-link <?= ($currentPage == 'expiring.php') ? 'active' : '' ?>">
                 <i class="nav-icon bi bi-circle text-warning"></i>
                 <p>اشتراكات توشك على الانتهاء</p>
               </a>
@@ -77,8 +82,9 @@
         </li>
 
         <!-- الباقات والاشتراكات -->
-        <li class="nav-item">
-          <a href="#" class="nav-link">
+        <?php $subPages = ['packages.php', 'subscriptions.php']; ?>
+        <li class="nav-item <?= in_array($currentPage, $subPages) ? 'menu-open' : '' ?>">
+          <a href="#" class="nav-link <?= in_array($currentPage, $subPages) ? 'active' : '' ?>">
             <i class="nav-icon bi bi-card-checklist"></i>
             <p>
               الباقات والاشتراكات
@@ -87,13 +93,13 @@
           </a>
           <ul class="nav nav-treeview">
             <li class="nav-item">
-              <a href="/packages.php" class="nav-link">
+              <a href="packages.php" class="nav-link <?= ($currentPage == 'packages.php') ? 'active' : '' ?>">
                 <i class="nav-icon bi bi-circle"></i>
                 <p>أنواع الباقات</p>
               </a>
             </li>
             <li class="nav-item">
-              <a href="/subscriptions-log.php" class="nav-link">
+              <a href="subscriptions.php" class="nav-link <?= ($currentPage == 'subscriptions.php') ? 'active' : '' ?>">
                 <i class="nav-icon bi bi-circle"></i>
                 <p>سجل الاشتراكات</p>
               </a>
@@ -102,8 +108,9 @@
         </li>
 
         <!-- المدربين والتمارين -->
-        <li class="nav-item">
-          <a href="#" class="nav-link">
+        <?php $trainerPages = ['trainers.php', 'trainer-add.php', 'trainer-edit.php', 'schedules.php', 'session-add.php']; ?>
+        <li class="nav-item <?= in_array($currentPage, $trainerPages) ? 'menu-open' : '' ?>">
+          <a href="#" class="nav-link <?= in_array($currentPage, $trainerPages) ? 'active' : '' ?>">
             <i class="nav-icon bi bi-person-badge-fill"></i>
             <p>
               الكباتن والمدربين
@@ -112,13 +119,13 @@
           </a>
           <ul class="nav nav-treeview">
             <li class="nav-item">
-              <a href="/trainers.php" class="nav-link">
+              <a href="trainers.php" class="nav-link <?= ($currentPage == 'trainers.php') ? 'active' : '' ?>">
                 <i class="nav-icon bi bi-circle"></i>
                 <p>قائمة المدربين</p>
               </a>
             </li>
             <li class="nav-item">
-              <a href="/schedules.php" class="nav-link">
+              <a href="schedules.php" class="nav-link <?= ($currentPage == 'schedules.php') ? 'active' : '' ?>">
                 <i class="nav-icon bi bi-circle"></i>
                 <p>جدول الحصص والتمارين</p>
               </a>
@@ -139,20 +146,19 @@
           </a>
           <ul class="nav nav-treeview">
             <li class="nav-item">
-              <a href="/finance/index.php" class="nav-link">
+              <a href="finance/index.php" class="nav-link">
                 <i class="nav-icon bi bi-circle"></i>
                 <p>سجل المدفوعات</p>
               </a>
             </li>
             <li class="nav-item">
-              <a href="/finance/add-expense.php" class="nav-link">
+              <a href="finance/add-expense.php" class="nav-link">
                 <i class="nav-icon bi bi-circle"></i>
                 <p>تسجيل مصروف جديد</p>
               </a>
             </li>
-            <!-- تم إضافة رابط تقارير الخزينة والمالية هنا -->
             <li class="nav-item">
-              <a href="/finance/reports.php" class="nav-link">
+              <a href="finance/reports.php" class="nav-link">
                 <i class="nav-icon bi bi-circle"></i>
                 <p>تقارير الخزينة</p>
               </a>
@@ -161,8 +167,9 @@
         </li>
 
         <!-- المتجر والمكملات -->
-        <li class="nav-item">
-          <a href="#" class="nav-link">
+        <?php $shopPages = ['products.php', 'pos.php']; ?>
+        <li class="nav-item <?= in_array($currentPage, $shopPages) ? 'menu-open' : '' ?>">
+          <a href="#" class="nav-link <?= in_array($currentPage, $shopPages) ? 'active' : '' ?>">
             <i class="nav-icon bi bi-shop"></i>
             <p>
               المتجر والمكملات
@@ -171,13 +178,13 @@
           </a>
           <ul class="nav nav-treeview">
             <li class="nav-item">
-              <a href="/products.php" class="nav-link">
+              <a href="products.php" class="nav-link <?= ($currentPage == 'products.php') ? 'active' : '' ?>">
                 <i class="nav-icon bi bi-circle"></i>
                 <p>المنتجات والخدمات</p>
               </a>
             </li>
             <li class="nav-item">
-              <a href="/pos.php" class="nav-link">
+              <a href="pos.php" class="nav-link <?= ($currentPage == 'pos.php') ? 'active' : '' ?>">
                 <i class="nav-icon bi bi-circle"></i>
                 <p>نقطة بيع (POS)</p>
               </a>
@@ -185,27 +192,11 @@
           </ul>
         </li>
 
-        <li class="nav-header">الإعدادات والتقارير</li>
-
-        <!-- التقارير الشاملة -->
-        <li class="nav-item">
-          <a href="/reports.php" class="nav-link">
-            <i class="nav-icon bi bi-graph-up-arrow"></i>
-            <p>التقارير والإحصائيات</p>
-          </a>
-        </li>
-
-        <!-- الإعدادات -->
-        <li class="nav-item">
-          <a href="/settings.php" class="nav-link">
-            <i class="nav-icon bi bi-gear-fill"></i>
-            <p>إعدادات النظام</p>
-          </a>
-        </li>
+        <li class="nav-header">الحساب والشخصي</li>
 
         <!-- تسجيل الخروج -->
         <li class="nav-item mt-3">
-          <a href="/logout.php" class="nav-link text-danger">
+          <a href="logout.php" class="nav-link text-danger">
             <i class="nav-icon bi bi-box-arrow-right"></i>
             <p>تسجيل الخروج</p>
           </a>

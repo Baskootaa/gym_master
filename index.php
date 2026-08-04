@@ -1,3 +1,39 @@
+<?php
+// 1. استدعاء ملف الاتصال بقاعدة البيانات الصحيح
+require_once 'config/db.php';
+
+// 2. جلب الإعدادات العامة
+try {
+    $settings_stmt = $pdo->query("SELECT * FROM system_settings WHERE id=1");
+    $sys_settings = $settings_stmt ? $settings_stmt->fetch(PDO::FETCH_ASSOC) : null;
+} catch (PDOException $e) {
+    $sys_settings = null;
+}
+
+// القيم الافتراضية للإعدادات في حال عدم وجود الجدول
+$sys_settings = $sys_settings ?: [
+    'gym_name'        => 'Gym Master',
+    'phone'           => '01000000000',
+    'currency'        => 'ج.م', 
+    'open_time'       => '08:00:00', 
+    'close_time'      => '00:00:00', 
+    'tax_rate'        => '14.00',
+    'invoice_message' => 'نتمنى لكم تمريناً سعيداً'
+];
+$currency = $sys_settings['currency'];
+
+// 3. جلب الإحصائيات عبر PDO
+try {
+    $total_members = $pdo->query("SELECT COUNT(*) FROM members")->fetchColumn();
+    $active_subs   = $pdo->query("SELECT COUNT(*) FROM subscriptions WHERE end_date >= CURDATE()")->fetchColumn();
+    $expired_subs  = $pdo->query("SELECT COUNT(*) FROM subscriptions WHERE end_date < CURDATE()")->fetchColumn();
+    $expiring_soon = $pdo->query("SELECT COUNT(*) FROM subscriptions WHERE end_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 7 DAY)")->fetchColumn();
+} catch (PDOException $e) {
+    $total_members = $active_subs = $expired_subs = $expiring_soon = 0;
+}
+?>
+
+<?php $active_page = 'index'; ?>
 <?php require_once 'includes/header.php'; ?>
 <?php require_once 'includes/sidebar.php'; ?>
 
@@ -5,29 +41,27 @@
 <main class="app-main">
   <!--begin::App Content Header-->
   <div class="app-content-header">
-    <!--begin::Container-->
     <div class="container-fluid">
-      <!--begin::Row-->
       <div class="row">
         <div class="col-sm-6">
-          <h3 class="mb-0">لوحة تحكم الجيم (Gym Dashboard)</h3>
+          <h3 class="mb-0">لوحة تحكم (<?php echo htmlspecialchars($sys_settings['gym_name']); ?>)</h3>
+          <p class="text-muted mb-0 mt-1">
+            <i class="bi bi-telephone-fill me-1"></i> للتواصل: <?php echo htmlspecialchars($sys_settings['phone']); ?>
+          </p>
         </div>
         <div class="col-sm-6">
           <ol class="breadcrumb float-sm-end">
-            <li class="breadcrumb-item"><a href="#">الرئيسية</a></li>
+            <li class="breadcrumb-item"><a href="index.php">الرئيسية</a></li>
             <li class="breadcrumb-item active" aria-current="page">لوحة التحكم</li>
           </ol>
         </div>
       </div>
-      <!--end::Row-->
     </div>
-    <!--end::Container-->
   </div>
   <!--end::App Content Header-->
 
   <!--begin::App Content-->
   <div class="app-content">
-    <!--begin::Container-->
     <div class="container-fluid">
       <!--begin::Row (Stats Widgets)-->
       <div class="row">
@@ -35,10 +69,10 @@
         <div class="col-lg-3 col-6">
           <div class="small-box text-bg-primary">
             <div class="inner">
-              <h3>240</h3>
+              <h3><?php echo number_format($total_members); ?></h3>
               <p>إجمالي الأعضاء (Total Members)</p>
             </div>
-            <svg class="small-box-icon" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <svg class="small-box-icon" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path d="M4.5 4.5a3 3 0 00-3 3v9a3 3 0 003 3h15a3 3 0 003-3v-9a3 3 0 00-3-3h-15zM12 7.5a2.25 2.25 0 100 4.5 2.25 2.25 0 000-4.5zM6 16.5a4.5 4.5 0 018.3-2.204.75.75 0 01-.106.918l-.208.208a.75.75 0 01-1.06 0L12 14.44l-1.926.982a.75.75 0 01-1.06 0l-.208-.208a.75.75 0 01-.106-.918A4.485 4.485 0 016 16.5z"></path>
             </svg>
             <a href="members.php" class="small-box-footer link-light link-underline-opacity-0 link-underline-opacity-50-hover">
@@ -51,10 +85,10 @@
         <div class="col-lg-3 col-6">
           <div class="small-box text-bg-success">
             <div class="inner">
-              <h3>185</h3>
+              <h3><?php echo number_format($active_subs); ?></h3>
               <p>اشتراكات نشطة (Active)</p>
             </div>
-            <svg class="small-box-icon" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <svg class="small-box-icon" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path clip-rule="evenodd" fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm13.36-1.814a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.75-5.25z"></path>
             </svg>
             <a href="subscriptions.php" class="small-box-footer link-light link-underline-opacity-0 link-underline-opacity-50-hover">
@@ -67,10 +101,10 @@
         <div class="col-lg-3 col-6">
           <div class="small-box text-bg-warning">
             <div class="inner">
-              <h3>14</h3>
+              <h3><?php echo number_format($expiring_soon); ?></h3>
               <p>تنتهي هذا الأسبوع (Expiring Soon)</p>
             </div>
-            <svg class="small-box-icon" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <svg class="small-box-icon" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path clip-rule="evenodd" fill-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zM12.75 6a.75.75 0 00-1.5 0v6c0 .2.079.39.22.53l3 3a.75.75 0 001.06-1.06l-2.78-2.78V6z"></path>
             </svg>
             <a href="expiring.php" class="small-box-footer link-dark link-underline-opacity-0 link-underline-opacity-50-hover">
@@ -83,13 +117,13 @@
         <div class="col-lg-3 col-6">
           <div class="small-box text-bg-danger">
             <div class="inner">
-              <h3>41</h3>
+              <h3><?php echo number_format($expired_subs); ?></h3>
               <p>اشتراكات منتهية (Expired)</p>
             </div>
-            <svg class="small-box-icon" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <svg class="small-box-icon" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path clip-rule="evenodd" fill-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zm-1.72 6.97a.75.75 0 10-1.06 1.06L10.94 12l-1.72 1.72a.75.75 0 101.06 1.06L12 13.06l1.72 1.72a.75.75 0 101.06-1.06L13.06 12l1.72-1.72a.75.75 0 10-1.06-1.06L12 10.94l-1.72-1.72z"></path>
             </svg>
-            <a href="expired.php" class="small-box-footer link-light link-underline-opacity-0 link-underline-opacity-50-hover">
+            <a href="expiring.php" class="small-box-footer link-light link-underline-opacity-0 link-underline-opacity-50-hover">
               التفاصيل <i class="bi bi-arrow-right-circle"></i>
             </a>
           </div>
@@ -102,16 +136,10 @@
         <!-- Start Col (Left Section) -->
         <div class="col-lg-8 connectedSortable">
           
-          <!-- Table: Recent Check-ins / Today's Attendance -->
+          <!-- Table: Recent Check-ins -->
           <div class="card mb-4">
             <div class="card-header">
               <h3 class="card-title"><i class="bi bi-person-check-fill me-2"></i>تسجيلات الدخول اليوم (Today Check-ins)</h3>
-              <div class="card-tools">
-                <button type="button" class="btn btn-tool" data-lte-toggle="card-collapse">
-                  <i data-lte-icon="expand" class="bi bi-plus-lg"></i>
-                  <i data-lte-icon="collapse" class="bi bi-dash-lg"></i>
-                </button>
-              </div>
             </div>
             <div class="card-body p-0">
               <div class="table-responsive">
@@ -159,10 +187,33 @@
               </div>
             </div>
             <div class="card-footer text-end">
-              <a href="attendance.php" class="btn btn-sm btn-outline-primary">عرض كل سجلات الدخول</a>
+              <a href="check-in.php" class="btn btn-sm btn-outline-primary">عرض كل سجلات الدخول</a>
             </div>
           </div>
           <!-- /.card -->
+
+          <!-- Card: Financial & Invoice Info -->
+          <div class="card mb-4">
+            <div class="card-header bg-light">
+              <h3 class="card-title text-primary"><i class="bi bi-receipt-cutoff me-2"></i>إعدادات الفواتير الحالية</h3>
+            </div>
+            <div class="card-body">
+              <div class="row text-center">
+                  <div class="col-md-4 border-end">
+                      <h6 class="text-muted">الضريبة المضافة</h6>
+                      <h4 class="fw-bold"><?php echo htmlspecialchars($sys_settings['tax_rate']); ?>%</h4>
+                  </div>
+                  <div class="col-md-4 border-end">
+                      <h6 class="text-muted">العملة الافتراضية</h6>
+                      <h4 class="fw-bold"><?php echo htmlspecialchars($currency); ?></h4>
+                  </div>
+                  <div class="col-md-4">
+                      <h6 class="text-muted">رسالة الفواتير</h6>
+                      <p class="mb-0 text-success fw-bold">"<?php echo htmlspecialchars($sys_settings['invoice_message']); ?>"</p>
+                  </div>
+              </div>
+            </div>
+          </div>
 
         </div>
         <!-- /.col -->
@@ -179,12 +230,29 @@
               <a href="add-member.php" class="btn btn-primary btn-lg">
                 <i class="bi bi-person-plus-fill me-2"></i>إضافة عضو جديد
               </a>
-              <a href="renew-subscription.php" class="btn btn-success btn-lg">
+              <a href="subscriptions.php" class="btn btn-success btn-lg">
                 <i class="bi bi-arrow-repeat me-2"></i>تجديد اشتراك
               </a>
               <a href="check-in.php" class="btn btn-info text-white btn-lg">
                 <i class="bi bi-qr-code-scan me-2"></i>تسجيل دخول عضو
               </a>
+              <a href="create-invoice.php" class="btn btn-warning btn-lg">
+                <i class="bi bi-receipt me-2"></i>إنشاء فاتورة جديدة
+              </a>
+            </div>
+          </div>
+
+          <!-- Card: Working Hours -->
+          <div class="card mb-4">
+            <div class="card-header bg-secondary text-white">
+              <h3 class="card-title"><i class="bi bi-clock me-2"></i>مواعيد العمل</h3>
+            </div>
+            <div class="card-body text-center">
+                <h5>يومياً</h5>
+                <p class="mb-0 fs-5 text-success fw-bold">
+                   من <?php echo date("h:i A", strtotime($sys_settings['open_time'])); ?> 
+                   إلى <?php echo date("h:i A", strtotime($sys_settings['close_time'])); ?>
+                </p>
             </div>
           </div>
 
@@ -195,18 +263,24 @@
             </div>
             <div class="card-body p-0">
               <ul class="list-group list-group-flush">
-                <li class="list-group-item d-flex justify-content-between align-items-center">
-                  اشتراك شهري (Month Pass)
-                  <span class="badge bg-primary rounded-pill">500 ج.م</span>
-                </li>
-                <li class="list-group-item d-flex justify-content-between align-items-center">
-                  اشتراك 3 شهور (Quarterly)
-                  <span class="badge bg-primary rounded-pill">1350 ج.م</span>
-                </li>
-                <li class="list-group-item d-flex justify-content-between align-items-center">
-                  اشتراك سنوي (Annual VIP)
-                  <span class="badge bg-primary rounded-pill">4500 ج.م</span>
-                </li>
+                <?php 
+                try {
+                    $packages = $pdo->query("SELECT * FROM packages")->fetchAll(PDO::FETCH_ASSOC);
+                } catch (PDOException $e) {
+                    $packages = [];
+                }
+                
+                if (!empty($packages)) {
+                    foreach ($packages as $pkg) {
+                        echo '<li class="list-group-item d-flex justify-content-between align-items-center">';
+                        echo htmlspecialchars($pkg['name']); 
+                        echo '<span class="badge bg-primary rounded-pill">' . number_format($pkg['price'], 2) . ' ' . htmlspecialchars($currency) . '</span>';
+                        echo '</li>';
+                    }
+                } else {
+                    echo '<li class="list-group-item text-center text-muted">لا توجد باقات متاحة حالياً</li>';
+                }
+                ?>
               </ul>
             </div>
           </div>
@@ -216,7 +290,6 @@
       </div>
       <!-- /.row (main row) -->
     </div>
-    <!--end::Container-->
   </div>
   <!--end::App Content-->
 </main>

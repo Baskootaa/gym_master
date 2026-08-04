@@ -1,23 +1,37 @@
 <?php
-// التأكد من عدم إنشاء أكثر من اتصال إذا تم استدعاء الملف أكثر من مرة
-if (isset($pdo) && $pdo instanceof PDO) {
+// منع إعادة الاتصال إذا كان معرفاً مسبقاً
+if (isset($conn) && $conn instanceof mysqli && isset($pdo) && $pdo instanceof PDO) {
     return;
 }
 
 // بيانات الاتصال بقاعدة البيانات
 $host     = 'localhost';
-$dbname   = 'gym_master'; // اسم قاعدة البيانات الموحد للفريق
+$dbname   = 'gym_master'; // اسم قاعدة البيانات
 $username = 'root';
-$password = '';           // في XAMPP يكون الباسورد فارغ افتراضياً
+$password = '';         // افتراضي XAMPP
 
+// ----------------------------------------------------
+// 1. الاتصال باستخدام MySQLi (لتوافق متغير $conn)
+// ----------------------------------------------------
+$conn = new mysqli($host, $username, $password, $dbname);
+
+if ($conn->connect_error) {
+    die("خطأ في الاتصال بقاعدة البيانات (MySQLi): " . $conn->connect_error);
+}
+
+// ضبط الترميز للغة العربية
+$conn->set_charset("utf8mb4");
+
+// ----------------------------------------------------
+// 2. الاتصال باستخدام PDO (لتوافق متغير $pdo)
+// ----------------------------------------------------
 try {
-    // إنشاء كائن PDO للاتصال
     $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8mb4", $username, $password, [
-        PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION, // إظهار الأخطاء في شكل Exceptions لتسهيل الـ Debugging
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,     // إرجاع البيانات في شكل Array مفهرسة بأسماء الأعمدة
-        PDO::ATTR_EMULATE_PREPARES   => false,                 // حماية إضافية وتعزيز الأداء ضد SQL Injection
+        PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        PDO::ATTR_EMULATE_PREPARES   => false,
     ]);
 } catch (PDOException $e) {
-    // في حالة فشل الاتصال يتم إيقاف التنفيذ وإظهار السبب
-    die("خطأ في الاتصال بقاعدة البيانات: " . $e->getMessage());
+    die("خطأ في الاتصال بقاعدة البيانات (PDO): " . $e->getMessage());
 }
+?>
