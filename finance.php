@@ -24,7 +24,7 @@ try {
                 </div>
                 <div class="col-sm-6 text-end">
                     <!-- تم تعديل المسار هنا إلى /finance/add-expense.php لمنع خطأ Not Found -->
-                    <a href="/finance/add-expense.php" class="btn btn-primary">
+                    <a href="/add-expense.php" class="btn btn-primary">
                         <i class="bi bi-plus-circle"></i> إضافة مصروف جديد
                     </a>
                 </div>
