@@ -4,63 +4,67 @@ require_once 'config/db.php';
 
 $errors = [];
 
-// حذف اشتراك
+// حذف اشتراك (متاح فقط للأدمن والموظف للأمان)
 if (isset($_GET['delete'])) {
-    $stmt = $pdo->prepare('DELETE FROM subscriptions WHERE id = :id');
-    $stmt->execute(['id' => (int) $_GET['delete']]);
-    header('Location: subscriptions.php?deleted=1');
-    exit;
+    if (hasRole(['admin', 'staff'])) {
+        $stmt = $pdo->prepare('DELETE FROM subscriptions WHERE id = :id');
+        $stmt->execute(['id' => (int) $_GET['delete']]);
+        header('Location: subscriptions.php?deleted=1');
+        exit;
+    }
 }
 
-// إضافة اشتراك جديد
+// إضافة اشتراك جديد (متاح فقط للأدمن والموظف)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $member_id  = (int) ($_POST['member_id'] ?? 0);
-    $package_id = (int) ($_POST['package_id'] ?? 0);
-    $start_date = $_POST['start_date'] ?? date('Y-m-d');
+    if (hasRole(['admin', 'staff'])) {
+        $member_id  = (int) ($_POST['member_id'] ?? 0);
+        $package_id = (int) ($_POST['package_id'] ?? 0);
+        $start_date = $_POST['start_date'] ?? date('Y-m-d');
 
-    if ($member_id <= 0 || $package_id <= 0) {
-        $errors[] = 'من فضلك اختار العضو والباقة';
-    } else {
-        // جلب تفاصيل الباقة (الأيام والسعر)
-        $stmt = $pdo->prepare('SELECT duration_days, price FROM packages WHERE id = :id');
-        $stmt->execute(['id' => $package_id]);
-        $package = $stmt->fetch();
-
-        if (!$package) {
-            $errors[] = 'الباقة دي مش موجودة';
+        if ($member_id <= 0 || $package_id <= 0) {
+            $errors[] = 'من فضلك اختار العضو والباقة';
         } else {
-            $end_date = date('Y-m-d', strtotime($start_date . ' + ' . $package['duration_days'] . ' days'));
-            $price    = $package['price'] ?? 0;
+            // جلب تفاصيل الباقة (الأيام والسعر)
+            $stmt = $pdo->prepare('SELECT duration_days, price FROM packages WHERE id = :id');
+            $stmt->execute(['id' => $package_id]);
+            $package = $stmt->fetch();
 
-            // إدراج الاشتراك مع حفظ سعر الباقات المختلفة (حصة، شهر، سنة)
-            try {
-                $stmt = $pdo->prepare(
-                    'INSERT INTO subscriptions (member_id, package_id, start_date, end_date, price, status)
-                     VALUES (:member_id, :package_id, :start_date, :end_date, :price, "active")'
-                );
-                $stmt->execute([
-                    'member_id'  => $member_id,
-                    'package_id' => $package_id,
-                    'start_date' => $start_date,
-                    'end_date'   => $end_date,
-                    'price'      => $price,
-                ]);
-            } catch (PDOException $e) {
-                // في حال عدم وجود عامود price في جدول الاشتراكات يتم حفظ التكلفة في عامود cost أو الحفظ بدون العامود
-                $stmt = $pdo->prepare(
-                    'INSERT INTO subscriptions (member_id, package_id, start_date, end_date)
-                     VALUES (:member_id, :package_id, :start_date, :end_date)'
-                );
-                $stmt->execute([
-                    'member_id'  => $member_id,
-                    'package_id' => $package_id,
-                    'start_date' => $start_date,
-                    'end_date'   => $end_date,
-                ]);
+            if (!$package) {
+                $errors[] = 'الباقة دي مش موجودة';
+            } else {
+                $end_date = date('Y-m-d', strtotime($start_date . ' + ' . $package['duration_days'] . ' days'));
+                $price    = $package['price'] ?? 0;
+
+                // إدراج الاشتراك مع حفظ سعر الباقات المختلفة (حصة، شهر، سنة)
+                try {
+                    $stmt = $pdo->prepare(
+                        'INSERT INTO subscriptions (member_id, package_id, start_date, end_date, price, status)
+                         VALUES (:member_id, :package_id, :start_date, :end_date, :price, "active")'
+                    );
+                    $stmt->execute([
+                        'member_id'  => $member_id,
+                        'package_id' => $package_id,
+                        'start_date' => $start_date,
+                        'end_date'   => $end_date,
+                        'price'      => $price,
+                    ]);
+                } catch (PDOException $e) {
+                    // في حال عدم وجود عامود price في جدول الاشتراكات يتم حفظ التكلفة في عامود cost أو الحفظ بدون العامود
+                    $stmt = $pdo->prepare(
+                        'INSERT INTO subscriptions (member_id, package_id, start_date, end_date)
+                         VALUES (:member_id, :package_id, :start_date, :end_date)'
+                    );
+                    $stmt->execute([
+                        'member_id'  => $member_id,
+                        'package_id' => $package_id,
+                        'start_date' => $start_date,
+                        'end_date'   => $end_date,
+                    ]);
+                }
+
+                header('Location: subscriptions.php?added=1');
+                exit;
             }
-
-            header('Location: subscriptions.php?added=1');
-            exit;
         }
     }
 }
@@ -110,7 +114,8 @@ require_once 'includes/sidebar.php';
       <?php endforeach; ?>
 
       <div class="row">
-        <!-- فورم إضافة اشتراك -->
+        <!-- فورم إضافة اشتراك (يظهر فقط للأدمن والموظف) -->
+        <?php if (hasRole(['admin', 'staff'])): ?>
         <div class="col-lg-4">
           <div class="card">
             <div class="card-header">
@@ -156,9 +161,10 @@ require_once 'includes/sidebar.php';
             </div>
           </div>
         </div>
+        <?php endif; ?>
 
-        <!-- قائمة الاشتراكات -->
-        <div class="col-lg-8">
+        <!-- قائمة الاشتراكات: تأخذ المساحة الكاملة 12 للمستخدم العادي، أو 8 لو ظهر بجانبها الفورم -->
+        <div class="<?= hasRole(['admin', 'staff']) ? 'col-lg-8' : 'col-lg-12' ?>">
           <div class="card">
             <div class="card-header">
               <h3 class="card-title"><i class="bi bi-card-checklist me-2"></i>كل الاشتراكات (<?= count($subscriptions) ?>)</h3>
@@ -174,12 +180,14 @@ require_once 'includes/sidebar.php';
                       <th>البداية</th>
                       <th>النهاية</th>
                       <th>الحالة</th>
+                      <?php if (hasRole(['admin', 'staff'])): ?>
                       <th></th>
+                      <?php endif; ?>
                     </tr>
                   </thead>
                   <tbody>
                     <?php if (empty($subscriptions)): ?>
-                      <tr><td colspan="7" class="text-center text-secondary py-4">مفيش اشتراكات مسجلة لسه</td></tr>
+                      <tr><td colspan="<?= hasRole(['admin', 'staff']) ? 7 : 6 ?>" class="text-center text-secondary py-4">مفيش اشتراكات مسجلة لسه</td></tr>
                     <?php else: ?>
                       <?php foreach ($subscriptions as $sub):
                         $today = new DateTime();
@@ -206,6 +214,7 @@ require_once 'includes/sidebar.php';
                           <td><?= htmlspecialchars($sub['start_date']) ?></td>
                           <td><?= htmlspecialchars($sub['end_date']) ?></td>
                           <td><span class="badge <?= $statusClass ?>"><?= $statusLabel ?></span></td>
+                          <?php if (hasRole(['admin', 'staff'])): ?>
                           <td>
                             <a href="subscriptions.php?delete=<?= $sub['id'] ?>"
                                class="btn btn-sm btn-outline-danger"
@@ -213,6 +222,7 @@ require_once 'includes/sidebar.php';
                               <i class="bi bi-trash"></i>
                             </a>
                           </td>
+                          <?php endif; ?>
                         </tr>
                       <?php endforeach; ?>
                     <?php endif; ?>

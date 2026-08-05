@@ -1,5 +1,13 @@
 <?php
-// منع إعادة الاتصال إذا كان معرفاً مسبقاً
+
+define('BASE_URL', '/NTI_ROUND/gym_master/');
+
+// بدء الجلسة إذا لم تكن مبدوءة
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+// منع إعادة الاتصال والدوال إذا كانت معرفة مسبقاً
 if (isset($conn) && $conn instanceof mysqli && isset($pdo) && $pdo instanceof PDO) {
     return;
 }
@@ -34,4 +42,59 @@ try {
 } catch (PDOException $e) {
     die("خطأ في الاتصال بقاعدة البيانات (PDO): " . $e->getMessage());
 }
+
+// ----------------------------------------------------
+// 3. دوال فحص الصلاحيات وتنظيم أدوار المستخدمين
+// ----------------------------------------------------
+
+/**
+ * التحقق مما إذا كان المستخدم قد قام بتسجيل الدخول
+ */
+if (!function_exists('isLoggedIn')) {
+    function isLoggedIn() {
+        return isset($_SESSION['user_id']);
+    }
+}
+
+/**
+ * التحقق مما إذا كان للمستخدم دور معين أو أكثر من دور
+ * 
+ * @param array|string $allowedRoles الأدوار المسموح لها مثل ['admin', 'staff'] أو 'admin'
+ * @return bool
+ */
+if (!function_exists('hasRole')) {
+    function hasRole($allowedRoles) {
+        if (!isLoggedIn()) {
+            return false;
+        }
+        if (is_string($allowedRoles)) {
+            $allowedRoles = [$allowedRoles];
+        }
+        $userRole = $_SESSION['role'] ?? 'user';
+        return in_array($userRole, $allowedRoles, true);
+    }
+}
+
+/**
+ * دالة حماية الصفحات: تمنع الوصول للغير مصرح لهم وتوجههم للصفحة الرئيسية أو صفحة الدخول
+ * 
+ * @param array|string $allowedRoles الأدوار المسموح لها بفتح الصفحة
+ */
+if (!function_exists('checkAccess')) {
+    function checkAccess($allowedRoles) {
+        if (!isLoggedIn()) {
+            header("Location: " . BASE_URL . "login.php");
+            exit();
+        }
+
+        if (!hasRole($allowedRoles)) {
+            $_SESSION['error'] = "غير مصرح لك بالوصول لصفحة " . basename($_SERVER['PHP_SELF']);
+            
+            // توجيه المستخدم حسب دوره عند محاولة الوصول لصفحة غير مصرحة
+            header("Location: " . BASE_URL . "members.php");
+            exit();
+        }
+    }
+}
+
 ?>

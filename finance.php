@@ -1,10 +1,10 @@
 <?php
 // 1. استدعاء قاعدة البيانات
-require_once __DIR__ . '/../config/db.php';
-
-// 2. استدعاء الهيدر والسايدبار
-require_once __DIR__ . '/../includes/header.php';
-require_once __DIR__ . '/../includes/sidebar.php';
+// استدعاء ملفات النظام مع الخروج خطوة للخلف (/../)
+require_once __DIR__ . '/config/db.php';
+require_once __DIR__ . '/includes/auth_check.php';
+require_once __DIR__ . '/includes/header.php';
+require_once __DIR__ . '/includes/sidebar.php';
 
 // 3. جلب بيانات المصروفات من الداتابيز
 try {
@@ -81,4 +81,4 @@ try {
     </div>
 </main>
 
-<?php require_once __DIR__ . '/../includes/footer.php'; ?>
+<?php require_once __DIR__ . '/includes/footer.php'; ?>

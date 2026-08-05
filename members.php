@@ -1,14 +1,23 @@
 <?php
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 require_once __DIR__ . '/config/db.php';
+checkAccess(['admin', 'staff', 'user']);
+
+// التحقق من صلاحية المستخدم (أدمن أو موظف)
+$isStaffOrAdmin = isset($_SESSION['user_id']) && in_array($_SESSION['role'] ?? '', ['admin', 'staff'], true);
+
 $message = $_SESSION['message'] ?? '';
 $error = $_SESSION['error'] ?? '';
 unset($_SESSION['message'], $_SESSION['error']);
+
 require_once __DIR__ . '/includes/header.php';
 require_once __DIR__ . '/includes/sidebar.php';
+
 $search = trim($_GET['search'] ?? '');
+
 try {
     if ($search !== '') {
         $stmt = $pdo->prepare("SELECT * FROM members WHERE full_name LIKE ? OR phone LIKE ? ORDER BY id DESC");
@@ -30,9 +39,11 @@ try {
                     <h3 class="mb-0">قائمة الأعضاء</h3>
                 </div>
                 <div class="col-sm-6 text-end">
-                    <a href="/add-member.php" class="btn btn-primary">
-                        <i class="bi bi-person-plus-fill me-1"></i> إضافة عضو جديد
-                    </a>
+                    <?php if ($isStaffOrAdmin): ?>
+                        <a href="./add-member.php" class="btn btn-primary">
+                            <i class="bi bi-person-plus-fill me-1"></i> إضافة عضو جديد
+                        </a>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
@@ -62,7 +73,7 @@ try {
                                 <i class="bi bi-search"></i>
                             </button>
                             <?php if ($search !== ''): ?>
-                                <a href="/members.php" class="btn btn-sm btn-outline-secondary ms-1">
+                                <a href="./members.php" class="btn btn-sm btn-outline-secondary ms-1">
                                     <i class="bi bi-x-lg"></i>
                                 </a>
                             <?php endif; ?>
@@ -81,7 +92,9 @@ try {
                                     <th>نوع الاشتراك</th>
                                     <th>تاريخ الانتهاء</th>
                                     <th>الحالة</th>
-                                    <th class="text-center">إجراءات</th>
+                                    <?php if ($isStaffOrAdmin): ?>
+                                        <th class="text-center">إجراءات</th>
+                                    <?php endif; ?>
                                 </tr>
                             </thead>
                             <tbody>
@@ -103,21 +116,24 @@ try {
                                                     <span class="badge bg-danger">منتهي</span>
                                                 <?php endif; ?>
                                             </td>
-                                            <td class="text-center">
-                                                <a href="/member-edit.php?id=<?= (int) $m['id'] ?>"
-                                                   class="btn btn-sm btn-outline-warning" title="تعديل">
-                                                    <i class="bi bi-pencil-square"></i>
-                                                </a>
-                                                <a href="/member-delete.php?id=<?= (int) $m['id'] ?>"
-                                                   class="btn btn-sm btn-outline-danger" title="حذف">
-                                                    <i class="bi bi-trash"></i>
-                                                </a>
-                                            </td>
+                                            <?php if ($isStaffOrAdmin): ?>
+                                                <td class="text-center">
+                                                    <a href="./member-edit.php?id=<?= (int) $m['id'] ?>"
+                                                       class="btn btn-sm btn-outline-warning" title="تعديل">
+                                                        <i class="bi bi-pencil-square"></i>
+                                                    </a>
+                                                    <a href="./member-delete.php?id=<?= (int) $m['id'] ?>"
+                                                       class="btn btn-sm btn-outline-danger" title="حذف"
+                                                       onclick="return confirm('هل أنت تأكد من حذف هذا العضو؟');">
+                                                        <i class="bi bi-trash"></i>
+                                                    </a>
+                                                </td>
+                                            <?php endif; ?>
                                         </tr>
                                     <?php endforeach; ?>
                                 <?php else: ?>
                                     <tr>
-                                        <td colspan="8" class="text-center py-3 text-muted">لا يوجد أعضاء مسجلين حالياً.</td>
+                                        <td colspan="<?= $isStaffOrAdmin ? '8' : '7' ?>" class="text-center py-3 text-muted">لا يوجد أعضاء مسجلين حالياً.</td>
                                     </tr>
                                 <?php endif; ?>
                             </tbody>

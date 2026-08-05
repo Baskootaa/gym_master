@@ -251,7 +251,7 @@ $totalNotifications = $expiringCount + $newMembersCount + ($isAdmin ? 1 : 0);
                 
                 <?php if ($isAdmin): ?>
                 <div class="dropdown-divider"></div>
-                <a href="/finance/index.php" class="dropdown-item">
+                <a href="/finance.php" class="dropdown-item">
                   <i class="bi bi-cash-stack me-2 text-info"></i> تقرير الدخل اليومي جاهز
                   <span class="float-end text-secondary fs-7">مباشر</span>
                 </a>
@@ -316,7 +316,7 @@ $totalNotifications = $expiringCount + $newMembersCount + ($isAdmin ? 1 : 0);
                       <a href="/analytics.php" class="btn btn-link btn-sm text-decoration-none">التقارير</a>
                     </div>
                     <div class="col-4">
-                      <a href="/finance/index.php" class="btn btn-link btn-sm text-decoration-none">الخزينة</a>
+                      <a href="/finance.php" class="btn btn-link btn-sm text-decoration-none">الخزينة</a>
                     </div>
                     <div class="col-4">
                       <a href="/settings.php" class="btn btn-link btn-sm text-decoration-none">الإعدادات</a>

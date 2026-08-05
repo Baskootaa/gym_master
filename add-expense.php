@@ -1,7 +1,11 @@
 <?php
-require_once __DIR__ . '/../config/db.php';
-require_once __DIR__ . '/../includes/header.php';
-require_once __DIR__ . '/../includes/sidebar.php';
+
+// استدعاء ملفات النظام مع الخروج خطوة للخلف (/../)
+require_once __DIR__ . '/config/db.php';
+require_once __DIR__ . '/includes/auth_check.php';
+require_once __DIR__ . '/includes/header.php';
+require_once __DIR__ . '/includes/sidebar.php';
+
 
 $success = '';
 $error = '';
@@ -87,4 +91,4 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 </main>
 
-<?php require_once __DIR__ . '/../includes/footer.php'; ?>
+<?php require_once __DIR__ . '/includes/footer.php'; ?>

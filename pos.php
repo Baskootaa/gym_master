@@ -1,10 +1,19 @@
 <?php
+
 // 1. بدء الجلسة لتخزين الرسائل
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// حماية الصفحة: السماح فقط للأدمن والموظف بالوصول
+if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'] ?? '', ['admin', 'staff'], true)) {
+    $_SESSION['error'] = 'غير مصرح لك بالوصول لصفحة نقطة البيع (POS).';
+    header("Location: index.php");
+    exit();
+}
+
 require_once __DIR__ . '/config/db.php';
+checkAccess(['admin', 'staff']);
 
 // 2. تسجيل عملية بيع جديدة (POST)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['process_sale'])) {
@@ -62,10 +71,10 @@ unset($_SESSION['message'], $_SESSION['error']);
 require_once __DIR__ . '/includes/header.php';
 require_once __DIR__ . '/includes/sidebar.php';
 
-// 5. جلب المنتجات المتاحة للبيع وآخر المبيعات
+// 5. جلب المنتجات المتاحة للبيع وآخر المبيعات (تعديل الجلب إلى LIMIT 10)
 try {
     $products = $pdo->query("SELECT * FROM products WHERE quantity > 0 ORDER BY name ASC")->fetchAll();
-    $recentSales = $pdo->query("SELECT s.*, p.name as product_name FROM sales s JOIN products p ON s.product_id = p.id ORDER BY s.id DESC LIMIT 5")->fetchAll();
+    $recentSales = $pdo->query("SELECT s.*, p.name as product_name FROM sales s JOIN products p ON s.product_id = p.id ORDER BY s.id DESC LIMIT 10")->fetchAll();
 } catch (Exception $e) {
     $products = [];
     $recentSales = [];

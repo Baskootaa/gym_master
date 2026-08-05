@@ -6,19 +6,23 @@ $errors = [];
 $success = false;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $member_id = (int) ($_POST['member_id'] ?? 0);
+    // التأكد من أن المستخدم يملك صلاحية لتنفيذ العملية من الخلفية أيضاً للأمان
+    if (hasRole(['admin', 'staff'])) {
+        $member_id = (int) ($_POST['member_id'] ?? 0);
 
-    if ($member_id <= 0) {
-        $errors[] = 'من فضلك اختار عضو';
-    } else {
-        $stmt = $pdo->prepare('INSERT INTO check_ins (member_id) VALUES (:member_id)');
-        $stmt->execute(['member_id' => $member_id]);
-        $success = true;
+        if ($member_id <= 0) {
+            $errors[] = 'من فضلك اختار عضو';
+        } else {
+            $stmt = $pdo->prepare('INSERT INTO check_ins (member_id) VALUES (:member_id)');
+            $stmt->execute(['member_id' => $member_id]);
+            $success = true;
+        }
     }
 }
 
 $members = $pdo->query('SELECT id, full_name FROM members ORDER BY full_name ASC')->fetchAll();
 
+// 1. جلب تسجيلات الدخول لليوم الحالي
 $todayCheckins = $pdo->query(
     "SELECT c.id, c.check_in_time, m.full_name,
             (SELECT p.name FROM subscriptions s
@@ -32,6 +36,20 @@ $todayCheckins = $pdo->query(
      JOIN members m ON m.id = c.member_id
      WHERE DATE(c.check_in_time) = CURDATE()
      ORDER BY c.check_in_time DESC"
+)->fetchAll();
+
+// 2. جلب تسجيلات الدخول للأيام السابقة (قبل تاريخ اليوم)
+$pastCheckins = $pdo->query(
+    "SELECT c.id, c.check_in_time, m.full_name,
+            (SELECT p.name FROM subscriptions s
+             JOIN packages p ON p.id = s.package_id
+             WHERE s.member_id = m.id
+             ORDER BY s.end_date DESC LIMIT 1) AS package_name
+     FROM check_ins c
+     JOIN members m ON m.id = c.member_id
+     WHERE DATE(c.check_in_time) < CURDATE()
+     ORDER BY c.check_in_time DESC
+     LIMIT 10"
 )->fetchAll();
 
 require_once 'includes/header.php';
@@ -65,8 +83,10 @@ require_once 'includes/sidebar.php';
       <?php endforeach; ?>
 
       <div class="row">
+        <!-- قسم تسجيل الحضور (يظهر فقط للأدمن والموظف) -->
+        <?php if (hasRole(['admin', 'staff'])): ?>
         <div class="col-lg-4">
-          <div class="card">
+          <div class="card mb-4">
             <div class="card-header bg-info text-white">
               <h3 class="card-title"><i class="bi bi-qr-code-scan me-2"></i>تسجيل حضور</h3>
             </div>
@@ -92,9 +112,12 @@ require_once 'includes/sidebar.php';
             </div>
           </div>
         </div>
+        <?php endif; ?>
 
-        <div class="col-lg-8">
-          <div class="card">
+        <!-- الجداول: تأخذ المساحة الكاملة 12 إذا كان المستخدم عادي، أو 8 إذا ظهر نموذج التسجيل بجانبها -->
+        <div class="<?= hasRole(['admin', 'staff']) ? 'col-lg-8' : 'col-lg-12' ?>">
+          <!-- جدول تسجيلات دخول اليوم -->
+          <div class="card mb-4">
             <div class="card-header">
               <h3 class="card-title"><i class="bi bi-person-check-fill me-2"></i>تسجيلات الدخول اليوم (<?= count($todayCheckins) ?>)</h3>
             </div>
@@ -127,6 +150,42 @@ require_once 'includes/sidebar.php';
               </div>
             </div>
           </div>
+
+          <!-- جدول تسجيلات الدخول السابقة (التواريخ القديمة) -->
+          <div class="card mb-4">
+            <div class="card-header bg-secondary text-white">
+              <h3 class="card-title"><i class="bi bi-clock-history me-2"></i>سجل الدخول السابق (الأيام الماضية)</h3>
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                  <thead class="table-light">
+                    <tr>
+                      <th>#</th>
+                      <th>اسم العضو</th>
+                      <th>نوع الاشتراك</th>
+                      <th>تاريخ ووقت الدخول</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <?php if (empty($pastCheckins)): ?>
+                      <tr><td colspan="4" class="text-center text-secondary py-4">لا توجد سجلات دخول سابقة</td></tr>
+                    <?php else: ?>
+                      <?php foreach ($pastCheckins as $i => $past): ?>
+                        <tr>
+                          <td><?= $i + 1 ?></td>
+                          <td><?= htmlspecialchars($past['full_name']) ?></td>
+                          <td><?= htmlspecialchars($past['package_name'] ?? 'بدون اشتراك') ?></td>
+                          <td><?= date('Y-m-d - h:i A', strtotime($past['check_in_time'])) ?></td>
+                        </tr>
+                      <?php endforeach; ?>
+                    <?php endif; ?>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
 

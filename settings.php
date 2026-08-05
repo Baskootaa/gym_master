@@ -5,6 +5,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
 // استدعاء ملف الاتصال بقاعدة البيانات
 require_once __DIR__ . '/config/db.php';
+require_once __DIR__ . '/includes/auth_check.php';
 
 // التحقق من تسجيل الدخول
 if (empty($_SESSION['user_id'])) {
@@ -16,11 +17,20 @@ $user_id = $_SESSION['user_id'];
 $success_msg = '';
 $error_msg = '';
 
+// التحقق مما إذا كان المستخدم الحالي Admin
+$isAdmin = false;
+$check_admin_stmt = $conn->prepare("SELECT role FROM users WHERE id = ? LIMIT 1");
+$check_admin_stmt->bind_param("i", $user_id);
+$check_admin_stmt->execute();
+$current_user_role_res = $check_admin_stmt->get_result()->fetch_assoc();
+if ($current_user_role_res && strtolower($current_user_role_res['role']) === 'admin') {
+    $isAdmin = true;
+}
+
 // ----------------------------------------------------
 // 1. معالجة حفظ إعدادات النظام العامة
 // ----------------------------------------------------
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_settings'])) {
-    
     $gym_name = $conn->real_escape_string($_POST['gym_name']);
     $phone = $conn->real_escape_string($_POST['phone']);
     $tax_rate = floatval($_POST['tax_rate']);
@@ -55,51 +65,106 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_settings'])) {
 }
 
 // ----------------------------------------------------
-// 2. معالجة تحديث البروفايل الشخصي (بيانات المستخدم الحالي)
+// 2. معالجة تحديث البروفايل أو بيانات أي مستخدم (للأدمن)
 // ----------------------------------------------------
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update_profile'])) {
+    $target_user_id = ($isAdmin && !empty($_POST['target_user_id'])) ? intval($_POST['target_user_id']) : $user_id;
+    
     $full_name = trim($_POST['full_name'] ?? '');
     $email     = trim($_POST['email'] ?? '');
+    $phone_num = trim($_POST['phone'] ?? '');
     $role      = trim($_POST['role'] ?? 'Staff');
     $password  = $_POST['password'] ?? '';
 
     if (!empty($full_name) && !empty($email)) {
+        // التحقق من الأعمدة المتاحة في جدول users لمنع أي خطأ
+        $has_full_name = false;
+        $chk_col = $conn->query("SHOW COLUMNS FROM users LIKE 'full_name'");
+        if ($chk_col && $chk_col->num_rows > 0) {
+            $has_full_name = true;
+        }
+
+        $has_phone = false;
+        $chk_ph = $conn->query("SHOW COLUMNS FROM users LIKE 'phone'");
+        if ($chk_ph && $chk_ph->num_rows > 0) {
+            $has_phone = true;
+        }
+
         if (!empty($password)) {
-            // تحديث مع كلمة السر
             $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-            $stmt = $conn->prepare("UPDATE users SET name = ?, email = ?, role = ?, password = ? WHERE id = ?");
-            $stmt->bind_param("ssssi", $full_name, $email, $role, $hashed_password, $user_id);
+            if ($has_full_name && $has_phone) {
+                $stmt = $conn->prepare("UPDATE users SET full_name = ?, email = ?, phone = ?, role = ?, password = ? WHERE id = ?");
+                $stmt->bind_param("sssssi", $full_name, $email, $phone_num, $role, $hashed_password, $target_user_id);
+            } elseif ($has_full_name) {
+                $stmt = $conn->prepare("UPDATE users SET full_name = ?, email = ?, role = ?, password = ? WHERE id = ?");
+                $stmt->bind_param("ssssi", $full_name, $email, $role, $hashed_password, $target_user_id);
+            } else {
+                $stmt = $conn->prepare("UPDATE users SET email = ?, role = ?, password = ? WHERE id = ?");
+                $stmt->bind_param("sssi", $email, $role, $hashed_password, $target_user_id);
+            }
         } else {
-            // تحديث بدون تغيير كلمة السر
-            $stmt = $conn->prepare("UPDATE users SET name = ?, email = ?, role = ? WHERE id = ?");
-            $stmt->bind_param("sssi", $full_name, $email, $role, $user_id);
+            if ($has_full_name && $has_phone) {
+                $stmt = $conn->prepare("UPDATE users SET full_name = ?, email = ?, phone = ?, role = ? WHERE id = ?");
+                $stmt->bind_param("ssssi", $full_name, $email, $phone_num, $role, $target_user_id);
+            } elseif ($has_full_name) {
+                $stmt = $conn->prepare("UPDATE users SET full_name = ?, email = ?, role = ? WHERE id = ?");
+                $stmt->bind_param("sssi", $full_name, $email, $role, $target_user_id);
+            } else {
+                $stmt = $conn->prepare("UPDATE users SET email = ?, role = ? WHERE id = ?");
+                $stmt->bind_param("ssi", $email, $role, $target_user_id);
+            }
         }
 
         if ($stmt->execute()) {
-            // تحديث الجلسة بالبيانات الجديدة مباشرة
-            $_SESSION['user_name'] = $full_name;
-            $_SESSION['user_role'] = $role;
-            $success_msg = "تم تحديث بياناتك الشخصية بنجاح!";
+            if ($target_user_id == $user_id) {
+                $_SESSION['user_name'] = $full_name;
+                $_SESSION['user_role'] = $role;
+            }
+            $success_msg = "تم تحديث البيانات بنجاح!";
         } else {
-            $error_msg = "حدث خطأ أثناء تحديث البيانات الشخصية.";
+            $error_msg = "حدث خطأ أثناء تحديث البيانات.";
         }
     } else {
         $error_msg = "يرجى كتابة الاسم والبريد الإلكتروني بشكل صحيح.";
     }
 }
 
-// جلب الإعدادات الحالية لعرضها في الفورم
+// جلب الإعدادات الحالية
 $settings_result = $conn->query("SELECT * FROM system_settings WHERE id=1");
 $settings = $settings_result ? $settings_result->fetch_assoc() : [];
 
 // جلب الباقات الحالية
 $packages_result = $conn->query("SELECT * FROM packages");
 
-// جلب بيانات المستخدم الحالي
-$user_stmt = $conn->prepare("SELECT id, full_name, email, role FROM users WHERE id = ? LIMIT 1");
+// فحص الأعمدة المتاحة لجلب بيانات المستخدمين بدون أخطاء
+$col_check_fn = $conn->query("SHOW COLUMNS FROM users LIKE 'full_name'");
+$has_fn = ($col_check_fn && $col_check_fn->num_rows > 0);
+
+$col_check_ph = $conn->query("SHOW COLUMNS FROM users LIKE 'phone'");
+$has_ph = ($col_check_ph && $col_check_ph->num_rows > 0);
+
+$name_field = $has_fn ? "full_name" : "email";
+$phone_field = $has_ph ? "phone" : "'' as phone";
+
+// جلب قائمة كل المستخدمين في حال كان الأدمن هو من يدخل الصفحة
+$all_users = [];
+if ($isAdmin) {
+    $users_res = $conn->query("SELECT id, $name_field as display_name, email, $phone_field, role FROM users ORDER BY id ASC");
+    if ($users_res) {
+        while ($row = $users_res->fetch_assoc()) {
+            $all_users[] = $row;
+        }
+    }
+}
+
+// جلب بيانات المستخدم الحالي افتراضياً
+$user_stmt = $conn->prepare("SELECT id, $name_field as display_name, email, $phone_field, role FROM users WHERE id = ? LIMIT 1");
 $user_stmt->bind_param("i", $user_id);
 $user_stmt->execute();
 $current_user = $user_stmt->get_result()->fetch_assoc();
+if (!$current_user) {
+    $current_user = ['display_name' => '', 'email' => '', 'phone' => '', 'role' => 'Staff'];
+}
 ?>
 
 <?php $active_page = 'settings'; ?>
@@ -143,47 +208,76 @@ $current_user = $user_stmt->get_result()->fetch_assoc();
           <?php endif; ?>
 
           <!-- ========================================== -->
-          <!-- قسم تعديل الملف الشخصي (Profile Settings)   -->
+          <!-- قسم تعديل الملف الشخصي وصلاحيات المستخدمين  -->
           <!-- ========================================== -->
           <div class="card card-outline card-info mb-4 shadow-sm">
             <div class="card-header bg-info text-white">
-              <h3 class="card-title mb-0"><i class="bi bi-person-circle me-2"></i>تعديل الحساب الشخصي (البروفايل)</h3>
+              <h3 class="card-title mb-0"><i class="bi bi-person-circle me-2"></i>تعديل الحسابات وصلاحيات المستخدمين (البروفايل)</h3>
             </div>
             <form action="settings.php" method="POST">
               <div class="card-body">
                 <div class="row">
-                  <div class="col-md-6 mb-3">
-                    <label class="form-label font-weight-bold">الاسم بالكامل</label>
-                    <input type="text" class="form-control" name="full_name" value="<?php echo htmlspecialchars($current_user['name'] ?? ''); ?>" required>
-                  </div>
-                  <div class="col-md-6 mb-3">
-                    <label class="form-label font-weight-bold">البريد الإلكتروني</label>
-                    <input type="email" class="form-control" name="email" value="<?php echo htmlspecialchars($current_user['email'] ?? ''); ?>" required>
-                  </div>
-                  <div class="col-md-6 mb-3">
-                    <label class="form-label font-weight-bold">الصفة / المسمى (Role)</label>
-                    <select class="form-select" name="role">
-                      <option value="Staff" <?php echo (($current_user['role'] ?? '') == 'Staff') ? 'selected' : ''; ?>>Staff (موظف / كابتن)</option>
-                      <option value="Trainee" <?php echo (($current_user['role'] ?? '') == 'Trainee' || ($current_user['role'] ?? '') == 'متدرب') ? 'selected' : ''; ?>>متدرب (Trainee)</option>
-                      <option value="Admin" <?php echo (($current_user['role'] ?? '') == 'Admin') ? 'selected' : ''; ?>>Admin (مدير النظام)</option>
+                  
+                  <?php if ($isAdmin): ?>
+                  <!-- اختيار المستخدم في حال كان الأدمن هو من يتصفح الصفحة -->
+                  <div class="col-md-12 mb-3">
+                    <label class="form-label font-weight-bold text-primary">اختر المستخدم للتعديل على بياناته أو صلاحيته:</label>
+                    <select class="form-select border-primary" id="target_user_select" name="target_user_id">
+                        <?php foreach($all_users as $u): ?>
+                            <option value="<?php echo $u['id']; ?>" 
+                                data-email="<?php echo htmlspecialchars($u['email']); ?>" 
+                                data-phone="<?php echo htmlspecialchars($u['phone'] ?? ''); ?>" 
+                                data-role="<?php echo htmlspecialchars($u['role']); ?>"
+                                data-name="<?php echo htmlspecialchars($u['display_name']); ?>"
+                                <?php echo ($u['id'] == $user_id) ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($u['display_name']); ?> (<?php echo htmlspecialchars($u['role']); ?>)
+                            </option>
+                        <?php endforeach; ?>
                     </select>
                   </div>
+                  <?php endif; ?>
+
                   <div class="col-md-6 mb-3">
+                    <label class="form-label font-weight-bold">الاسم بالكامل</label>
+                    <input type="text" class="form-control" id="full_name_input" name="full_name" value="<?php echo htmlspecialchars($current_user['display_name'] ?? ''); ?>" required>
+                  </div>
+
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label font-weight-bold">البريد الإلكتروني</label>
+                    <input type="email" class="form-control" id="email_input" name="email" value="<?php echo htmlspecialchars($current_user['email'] ?? ''); ?>" required>
+                  </div>
+
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label font-weight-bold">رقم المحمول (الهاتف)</label>
+                    <input type="text" class="form-control" id="phone_input" name="phone" value="<?php echo htmlspecialchars($current_user['phone'] ?? ''); ?>" placeholder="أدخل رقم المحمول">
+                  </div>
+
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label font-weight-bold">الصفة / المسمى (Role)</label>
+                    <select class="form-select" id="role_select" name="role">
+                      <option value="Staff">Staff (موظف / كابتن)</option>
+                      <option value="Trainee">متدرب (Trainee / يوزر عادي)</option>
+                      <option value="Admin">Admin (مدير النظام)</option>
+                    </select>
+                  </div>
+
+                  <div class="col-md-12 mb-3">
                     <label class="form-label font-weight-bold">كلمة المرور الجديدة (اتركها فارغة إذا لم ترد التغيير)</label>
                     <input type="password" class="form-control" name="password" placeholder="••••••••">
                   </div>
+
                 </div>
               </div>
               <div class="card-footer text-end bg-light">
                 <button type="submit" name="update_profile" class="btn btn-info text-white px-4">
-                  <i class="bi bi-person-check-fill me-2"></i>حفظ بيانات البروفايل
+                  <i class="bi bi-person-check-fill me-2"></i>حفظ البيانات والصلاحية
                 </button>
               </div>
             </form>
           </div>
 
           <!-- ========================================== -->
-          <!-- قسم إعدادات الجيم العامة                      -->
+          <!-- قسم إعدادات الجيم العامة                  -->
           <!-- ========================================== -->
           <div class="card card-primary mb-4 shadow-sm">
             <div class="card-header bg-dark text-white">
@@ -278,4 +372,30 @@ $current_user = $user_stmt->get_result()->fetch_assoc();
 </main>
 <!--end::App Main-->
 
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const userSelect = document.getElementById("target_user_select");
+    if (userSelect) {
+        function updateFormFields() {
+            const selectedOption = userSelect.options[userSelect.selectedIndex];
+            document.getElementById("full_name_input").value = selectedOption.getAttribute("data-name") || "";
+            document.getElementById("email_input").value = selectedOption.getAttribute("data-email") || "";
+            document.getElementById("phone_input").value = selectedOption.getAttribute("data-phone") || "";
+            
+            const roleVal = selectedOption.getAttribute("data-role") || "Staff";
+            const roleSelect = document.getElementById("role_select");
+            for (let i = 0; i < roleSelect.options.length; i++) {
+                if (roleSelect.options[i].value.toLowerCase() === roleVal.toLowerCase()) {
+                    roleSelect.selectedIndex = i;
+                    break;
+                }
+            }
+        }
+        userSelect.addEventListener("change", updateFormFields);
+        updateFormFields();
+    }
+});
+</script>
+
 <?php require_once 'includes/footer.php'; ?>
+

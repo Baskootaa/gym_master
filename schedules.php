@@ -1,8 +1,15 @@
 <?php
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 $active_page = 'schedules';
 require_once 'includes/header.php';
 require_once 'includes/sidebar.php';
 require_once 'config/db.php';
+
+// التحقق من صلاحية المستخدم (أدمن أو موظف)
+$isStaffOrAdmin = isset($_SESSION['user_id']) && in_array($_SESSION['role'] ?? '', ['admin', 'staff'], true);
 
 $dayNames = ['السبت', 'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس'];
 
@@ -59,11 +66,13 @@ foreach ($rows as $row) {
         </div>
       <?php endif; ?>
 
-      <div class="mb-3">
-        <a href="./session-add.php" class="btn btn-primary">
-          <i class="bi bi-calendar-plus me-1"></i> إضافة حصة جديدة
-        </a>
-      </div>
+      <?php if ($isStaffOrAdmin): ?>
+        <div class="mb-3">
+          <a href="./session-add.php" class="btn btn-primary">
+            <i class="bi bi-calendar-plus me-1"></i> إضافة حصة جديدة
+          </a>
+        </div>
+      <?php endif; ?>
 
       <div class="card">
         <div class="card-header">

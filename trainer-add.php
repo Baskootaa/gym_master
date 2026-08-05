@@ -1,9 +1,23 @@
 <?php
-$active_page = 'trainers';
-require_once 'config/db.php';
 
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+require_once 'config/db.php';
+checkAccess(['admin', 'staff']);
+
+// 1. حظر الوصول لغير الأدمن والموظفين (Staff)
+$userRole = $_SESSION['role'] ?? '';
+if (!isset($_SESSION['user_id']) || !in_array($userRole, ['admin', 'staff'], true)) {
+    header('Location: trainers.php');
+    exit;
+}
+
+$active_page = 'trainers';
 $errors = [];
 $photo  = null; 
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $name       = trim($_POST['name'] ?? '');
@@ -215,3 +229,4 @@ require_once 'includes/sidebar.php';
 <!--end::App Main-->
 
 <?php require_once 'includes/footer.php'; ?>
+

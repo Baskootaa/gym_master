@@ -39,13 +39,15 @@ $currentPage = basename($_SERVER['PHP_SELF']);
           </a>
         </li>
 
-        <!-- تسجيل الدخول السريع -->
+        <!-- تسجيل الدخول السريع (متاح فقط للـ Admin والـ Staff) -->
+        <?php if (hasRole(['admin', 'staff'])): ?>
         <li class="nav-item">
           <a href="check-in.php" class="nav-link <?= ($currentPage == 'check-in.php') ? 'active' : '' ?>">
             <i class="nav-icon bi bi-qr-code-scan text-success"></i>
             <p>تسجيل دخول عضو</p>
           </a>
         </li>
+        <?php endif; ?>
 
         <li class="nav-header">إدارة الجيم</li>
 
@@ -66,12 +68,14 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                 <p>كل الأعضاء</p>
               </a>
             </li>
+            <?php if (hasRole(['admin', 'staff'])): ?>
             <li class="nav-item">
               <a href="add-member.php" class="nav-link <?= ($currentPage == 'add-member.php') ? 'active' : '' ?>">
                 <i class="nav-icon bi bi-circle"></i>
                 <p>إضافة عضو جديد</p>
               </a>
             </li>
+            <?php endif; ?>
             <li class="nav-item">
               <a href="expiring.php" class="nav-link <?= ($currentPage == 'expiring.php') ? 'active' : '' ?>">
                 <i class="nav-icon bi bi-circle text-warning"></i>
@@ -81,7 +85,8 @@ $currentPage = basename($_SERVER['PHP_SELF']);
           </ul>
         </li>
 
-        <!-- الباقات والاشتراكات -->
+        <!-- الباقات والاشتراكات (متاحة للـ Admin والـ Staff فقط) -->
+        <?php if (hasRole(['admin', 'staff'])): ?>
         <?php $subPages = ['packages.php', 'subscriptions.php']; ?>
         <li class="nav-item <?= in_array($currentPage, $subPages) ? 'menu-open' : '' ?>">
           <a href="#" class="nav-link <?= in_array($currentPage, $subPages) ? 'active' : '' ?>">
@@ -106,6 +111,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
             </li>
           </ul>
         </li>
+        <?php endif; ?>
 
         <!-- المدربين والتمارين -->
         <?php $trainerPages = ['trainers.php', 'trainer-add.php', 'trainer-edit.php', 'schedules.php', 'session-add.php']; ?>
@@ -133,11 +139,13 @@ $currentPage = basename($_SERVER['PHP_SELF']);
           </ul>
         </li>
 
+        <!-- الخزينة والمالية (متاحة فقط للـ Admin والـ Staff) -->
+        <?php if (hasRole(['admin', 'staff'])): ?>
         <li class="nav-header">المالية والمبيعات</li>
 
-        <!-- الخزينة والمالية -->
-        <li class="nav-item">
-          <a href="#" class="nav-link">
+        <?php $financePages = ['finance.php', 'add-expense.php', 'reports.php']; ?>
+        <li class="nav-item <?= in_array($currentPage, $financePages) ? 'menu-open' : '' ?>">
+          <a href="#" class="nav-link <?= in_array($currentPage, $financePages) ? 'active' : '' ?>">
             <i class="nav-icon bi bi-cash-stack"></i>
             <p>
               المالية والخزينة
@@ -146,25 +154,26 @@ $currentPage = basename($_SERVER['PHP_SELF']);
           </a>
           <ul class="nav nav-treeview">
             <li class="nav-item">
-              <a href="finance/index.php" class="nav-link">
+              <a href="finance.php" class="nav-link <?= ($currentPage == 'finance.php') ? 'active' : '' ?>">
                 <i class="nav-icon bi bi-circle"></i>
                 <p>سجل المدفوعات</p>
               </a>
             </li>
             <li class="nav-item">
-              <a href="finance/add-expense.php" class="nav-link">
+              <a href="add-expense.php" class="nav-link <?= ($currentPage == 'add-expense.php') ? 'active' : '' ?>">
                 <i class="nav-icon bi bi-circle"></i>
                 <p>تسجيل مصروف جديد</p>
               </a>
             </li>
             <li class="nav-item">
-              <a href="finance/reports.php" class="nav-link">
+              <a href="reports.php" class="nav-link <?= ($currentPage == 'reports.php') ? 'active' : '' ?>">
                 <i class="nav-icon bi bi-circle"></i>
                 <p>تقارير الخزينة</p>
               </a>
             </li>
           </ul>
         </li>
+        <?php endif; ?>
 
         <!-- المتجر والمكملات -->
         <?php $shopPages = ['products.php', 'pos.php']; ?>

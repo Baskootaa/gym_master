@@ -1,8 +1,15 @@
 <?php
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 $active_page = 'trainers';
 require_once 'includes/header.php';
 require_once 'includes/sidebar.php';
 require_once 'config/db.php';
+
+// التحقق من صلاحية المستخدم (أدمن أو موظف)
+$isStaffOrAdmin = isset($_SESSION['user_id']) && in_array($_SESSION['role'] ?? '', ['admin', 'staff'], true);
 
 $stmt = $pdo->query('SELECT * FROM trainers ORDER BY id DESC');
 $trainers = $stmt->fetchAll();
@@ -60,18 +67,20 @@ $trainers = $stmt->fetchAll();
       <?php endif; ?>
 
       <!--begin::Toolbar-->
-      <div class="mb-3">
-        <a href="./trainer-add.php" class="btn btn-primary">
-          <i class="bi bi-person-plus-fill me-1"></i> إضافة مدرب جديد
-        </a>
-      </div>
+      <?php if ($isStaffOrAdmin): ?>
+        <div class="mb-3">
+          <a href="./trainer-add.php" class="btn btn-primary">
+            <i class="bi bi-person-plus-fill me-1"></i> إضافة مدرب جديد
+          </a>
+        </div>
+      <?php endif; ?>
       <!--end::Toolbar-->
 
       <!--begin::Row (Trainer Cards)-->
       <div class="row">
         <?php if (empty($trainers)): ?>
           <div class="col-12">
-            <div class="alert alert-info">لا يوجد مدربين مسجلين حاليًا. ابدأ بإضافة أول مدرب.</div>
+            <div class="alert alert-info">لا يوجد مدربين مسجلين حاليًا.</div>
           </div>
         <?php endif; ?>
 
@@ -119,16 +128,19 @@ $trainers = $stmt->fetchAll();
                   <a href="./schedules.php" class="btn btn-primary btn-sm flex-fill">
                     <i class="bi bi-calendar-week me-1"></i> الجدول
                   </a>
-                  <a href="./trainer-edit.php?id=<?php echo (int) $trainer['id']; ?>" class="btn btn-outline-secondary btn-sm">
-                    <i class="bi bi-pencil-square"></i>
-                  </a>
-                  <a
-                    href="./trainer-delete.php?id=<?php echo (int) $trainer['id']; ?>"
-                    class="btn btn-outline-danger btn-sm"
-                    onclick="return confirm('متأكد إنك عايز تحذف <?php echo htmlspecialchars($trainer['name'], ENT_QUOTES); ?>؟');"
-                  >
-                    <i class="bi bi-trash"></i>
-                  </a>
+
+                  <?php if ($isStaffOrAdmin): ?>
+                    <a href="./trainer-edit.php?id=<?php echo (int) $trainer['id']; ?>" class="btn btn-outline-secondary btn-sm">
+                      <i class="bi bi-pencil-square"></i>
+                    </a>
+                    <a
+                      href="./trainer-delete.php?id=<?php echo (int) $trainer['id']; ?>"
+                      class="btn btn-outline-danger btn-sm"
+                      onclick="return confirm('متأكد إنك عايز تحذف <?php echo htmlspecialchars($trainer['name'], ENT_QUOTES); ?>؟');"
+                    >
+                      <i class="bi bi-trash"></i>
+                    </a>
+                  <?php endif; ?>
                 </div>
               </div>
             </div>

@@ -1,13 +1,25 @@
 <?php
+
 // 1. بدء الجلسة لتخزين رسائل النجاح والخطأ
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
 require_once __DIR__ . '/config/db.php';
+checkAccess(['admin', 'staff', 'user']);
+
+// التحقق مما إذا كان المستخدم يملك صلاحية الإضافة (Admin أو Staff)
+$canManageProducts = isset($_SESSION['user_id']) && in_array($_SESSION['role'] ?? '', ['admin', 'staff'], true);
 
 // 2. معالجة نموذج إضافة منتج جديد (POST)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_product'])) {
+    // حماية الخادم: التأكد من الصلاحية قبل تنفيذ الإضافة في قاعدة البيانات
+    if (!$canManageProducts) {
+        $_SESSION['error'] = "غير مصرح لك بإضافة منتجات جديدة.";
+        header("Location: products.php");
+        exit();
+    }
+
     $name = trim($_POST['name'] ?? '');
     $category = trim($_POST['category'] ?? 'مكملات');
     $price = floatval($_POST['price'] ?? 0);
@@ -57,9 +69,11 @@ try {
                     <h3 class="mb-0">إدارة المنتجات والخدمات</h3>
                 </div>
                 <div class="col-sm-6 text-end">
-                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addProductModal">
-                        <i class="bi bi-plus-circle me-1"></i> إضافة منتج جديد
-                    </button>
+                    <?php if ($canManageProducts): ?>
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addProductModal">
+                            <i class="bi bi-plus-circle me-1"></i> إضافة منتج جديد
+                        </button>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
@@ -130,6 +144,7 @@ try {
     </div>
 </main>
 
+<?php if ($canManageProducts): ?>
 <!-- Modal إضافة منتج -->
 <div class="modal fade" id="addProductModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
@@ -172,5 +187,6 @@ try {
         </div>
     </div>
 </div>
+<?php endif; ?>
 
 <?php require_once __DIR__ . '/includes/footer.php'; ?>

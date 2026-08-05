@@ -2,32 +2,40 @@
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+
+// استدعاء ملف الداتابيز والذي يحتوي على دوال الحماية والصلاحيات
 require_once __DIR__ . '/config/db.php';
+
+// حماية الصفحة: السماح للأدمن (admin) والموظف (staff) فقط بإضافة الأعضاء
+checkAccess(['admin', 'staff']);
+
 $member = [
-    'full_name' => '',
-    'phone' => '',
-    'email' => '',
-    'gender' => 'ذكر',
-    'birth_date' => '',
-    'address' => '',
-    'membership_type' => 'شهري',
+    'full_name'          => '',
+    'phone'              => '',
+    'email'              => '',
+    'gender'             => 'ذكر',
+    'birth_date'         => '',
+    'address'            => '',
+    'membership_type'    => 'شهري',
     'subscription_start' => date('Y-m-d'),
-    'subscription_end' => '',
-    'status' => 'نشط',
-    'notes' => '',
+    'subscription_end'   => '',
+    'status'             => 'نشط',
+    'notes'              => '',
 ];
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_member'])) {
-    $member['full_name'] = trim($_POST['full_name'] ?? '');
-    $member['phone'] = trim($_POST['phone'] ?? '');
-    $member['email'] = trim($_POST['email'] ?? '');
-    $member['gender'] = $_POST['gender'] ?? 'ذكر';
-    $member['birth_date'] = $_POST['birth_date'] ?? '';
-    $member['address'] = trim($_POST['address'] ?? '');
-    $member['membership_type'] = $_POST['membership_type'] ?? 'شهري';
+    $member['full_name']          = trim($_POST['full_name'] ?? '');
+    $member['phone']              = trim($_POST['phone'] ?? '');
+    $member['email']              = trim($_POST['email'] ?? '');
+    $member['gender']             = $_POST['gender'] ?? 'ذكر';
+    $member['birth_date']         = $_POST['birth_date'] ?? '';
+    $member['address']            = trim($_POST['address'] ?? '');
+    $member['membership_type']    = $_POST['membership_type'] ?? 'شهري';
     $member['subscription_start'] = $_POST['subscription_start'] ?? '';
-    $member['subscription_end'] = $_POST['subscription_end'] ?? '';
-    $member['status'] = $_POST['status'] ?? 'نشط';
-    $member['notes'] = trim($_POST['notes'] ?? '');
+    $member['subscription_end']   = $_POST['subscription_end'] ?? '';
+    $member['status']             = $_POST['status'] ?? 'نشط';
+    $member['notes']              = trim($_POST['notes'] ?? '');
+
     if ($member['full_name'] === '' || $member['phone'] === '' || $member['subscription_start'] === '' || $member['subscription_end'] === '') {
         $_SESSION['error'] = "من فضلك املأ كل الحقول المطلوبة (الاسم، الهاتف، تاريخ بداية ونهاية الاشتراك).";
     } elseif ($member['subscription_end'] < $member['subscription_start']) {
@@ -60,11 +68,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_member'])) {
         }
     }
 }
+
 $error = $_SESSION['error'] ?? '';
 unset($_SESSION['error']);
+
 require_once __DIR__ . '/includes/header.php';
 require_once __DIR__ . '/includes/sidebar.php';
 ?>
+
 <main class="app-main">
     <div class="app-content-header">
         <div class="container-fluid">
@@ -73,13 +84,14 @@ require_once __DIR__ . '/includes/sidebar.php';
                     <h3 class="mb-0">إضافة عضو جديد</h3>
                 </div>
                 <div class="col-sm-6 text-end">
-                    <a href="/members.php" class="btn btn-outline-secondary">
+                    <a href="./members.php" class="btn btn-outline-secondary">
                         <i class="bi bi-arrow-right me-1"></i> رجوع لقائمة الأعضاء
                     </a>
                 </div>
             </div>
         </div>
     </div>
+
     <div class="app-content">
         <div class="container-fluid">
             <?php if (!empty($error)): ?>
@@ -88,11 +100,12 @@ require_once __DIR__ . '/includes/sidebar.php';
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
             <?php endif; ?>
+
             <div class="card card-outline card-primary">
                 <div class="card-header">
                     <h3 class="card-title">بيانات العضو الجديد</h3>
                 </div>
-                <form method="POST" action="/add-member.php">
+                <form method="POST" action="">
                     <div class="card-body">
                         <div class="row">
                             <div class="col-md-6 mb-3">
@@ -173,7 +186,7 @@ require_once __DIR__ . '/includes/sidebar.php';
                         </div>
                     </div>
                     <div class="card-footer text-end">
-                        <a href="/members.php" class="btn btn-secondary">إلغاء</a>
+                        <a href="./members.php" class="btn btn-secondary">إلغاء</a>
                         <button type="submit" name="add_member" class="btn btn-primary">
                             <i class="bi bi-check-circle me-1"></i> إضافة العضو
                         </button>
@@ -183,4 +196,5 @@ require_once __DIR__ . '/includes/sidebar.php';
         </div>
     </div>
 </main>
+
 <?php require_once __DIR__ . '/includes/footer.php'; ?>

@@ -2,6 +2,12 @@
 // 1. استدعاء ملف الاتصال بقاعدة البيانات الصحيح
 require_once 'config/db.php';
 
+// منع الزائر غير المسجل من دخول الصفحة
+if (!isLoggedIn()) {
+    header("Location: login.php");
+    exit();
+}
+
 // 2. جلب الإعدادات العامة
 try {
     $settings_stmt = $pdo->query("SELECT * FROM system_settings WHERE id=1");
@@ -28,8 +34,26 @@ try {
     $active_subs   = $pdo->query("SELECT COUNT(*) FROM subscriptions WHERE end_date >= CURDATE()")->fetchColumn();
     $expired_subs  = $pdo->query("SELECT COUNT(*) FROM subscriptions WHERE end_date < CURDATE()")->fetchColumn();
     $expiring_soon = $pdo->query("SELECT COUNT(*) FROM subscriptions WHERE end_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 7 DAY)")->fetchColumn();
+    
+    // جلب آخر 4 تسجيلات دخول لليوم الحالي (Today Check-ins)
+    $todayStmt = $pdo->prepare("
+        SELECT c.id, c.check_in_time, m.full_name AS member_name, m.status AS member_status,
+               (SELECT p.name FROM subscriptions s
+                JOIN packages p ON p.id = s.package_id
+                WHERE s.member_id = m.id
+                ORDER BY s.end_date DESC LIMIT 1) AS package_name
+        FROM check_ins c
+        JOIN members m ON m.id = c.member_id
+        WHERE DATE(c.check_in_time) = CURDATE()
+        ORDER BY c.check_in_time DESC
+        LIMIT 4
+    ");
+    $todayStmt->execute();
+    $todayCheckIns = $todayStmt->fetchAll(PDO::FETCH_ASSOC);
+
 } catch (PDOException $e) {
     $total_members = $active_subs = $expired_subs = $expiring_soon = 0;
+    $todayCheckIns = [];
 }
 ?>
 
@@ -143,7 +167,7 @@ try {
             </div>
             <div class="card-body p-0">
               <div class="table-responsive">
-                <table class="table table-hover mb-0 align-middle">
+                <table class="table table-hover mb-0 align-middle text-center">
                   <thead class="table-light">
                     <tr>
                       <th>#</th>
@@ -154,34 +178,35 @@ try {
                     </tr>
                   </thead>
                   <tbody>
-                    <tr>
-                      <td>1</td>
-                      <td>أحمد محمود</td>
-                      <td>VIP (سنوي)</td>
-                      <td>05:30 م</td>
-                      <td><span class="badge bg-success">نشط</span></td>
-                    </tr>
-                    <tr>
-                      <td>2</td>
-                      <td>محمد علي</td>
-                      <td>شهري (كمال اجسام)</td>
-                      <td>05:15 م</td>
-                      <td><span class="badge bg-success">نشط</span></td>
-                    </tr>
-                    <tr>
-                      <td>3</td>
-                      <td>عمر خالد</td>
-                      <td>3 شهور</td>
-                      <td>04:45 م</td>
-                      <td><span class="badge bg-warning text-dark">ينتهي قريباً</span></td>
-                    </tr>
-                    <tr>
-                      <td>4</td>
-                      <td>مصطفى إبراهيم</td>
-                      <td>حصة واحدة (Daily Pass)</td>
-                      <td>04:10 م</td>
-                      <td><span class="badge bg-info">يومي</span></td>
-                    </tr>
+                    <?php if (!empty($todayCheckIns)): ?>
+                      <?php foreach ($todayCheckIns as $index => $row): ?>
+                        <tr>
+                          <td><?php echo $index + 1; ?></td>
+                          <td><?php echo htmlspecialchars($row['member_name']); ?></td>
+                          <td>
+                            <?php 
+                               if (!empty($row['package_name'])) {
+                                   echo htmlspecialchars($row['package_name']); 
+                               } else {
+                                   echo '<span class="text-muted">بدون باقة</span>';
+                               }
+                            ?>
+                          </td>
+                          <td><?php echo date('h:i A', strtotime($row['check_in_time'])); ?></td>
+                          <td>
+                            <?php if (isset($row['member_status']) && $row['member_status'] == 'active'): ?>
+                                <span class="badge bg-success">نشط</span>
+                            <?php else: ?>
+                                <span class="badge bg-danger">غير نشط</span>
+                            <?php endif; ?>
+                          </td>
+                        </tr>
+                      <?php endforeach; ?>
+                    <?php else: ?>
+                      <tr>
+                        <td colspan="5" class="text-muted py-4">لم يتم تسجيل دخول أي عضو اليوم بعد</td>
+                      </tr>
+                    <?php endif; ?>
                   </tbody>
                 </table>
               </div>
@@ -221,7 +246,8 @@ try {
         <!-- Start Col (Right Section) -->
         <div class="col-lg-4 connectedSortable">
           
-          <!-- Card: Quick Actions -->
+          <!-- Card: Quick Actions (متاحة فقط للـ Admin والـ Staff) -->
+          <?php if (hasRole(['admin', 'staff'])): ?>
           <div class="card mb-4">
             <div class="card-header bg-dark text-white">
               <h3 class="card-title"><i class="bi bi-lightning-charge-fill me-2"></i>إجراءات سريعة</h3>
@@ -241,6 +267,7 @@ try {
               </a>
             </div>
           </div>
+          <?php endif; ?>
 
           <!-- Card: Working Hours -->
           <div class="card mb-4">

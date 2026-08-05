@@ -29,8 +29,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // نجاح تسجيل الدخول
             session_regenerate_id(true); // حماية ضد Session Fixation
             $_SESSION['user_id']   = $user['id'];
-            $_SESSION['user_name'] = $user['full_name']; // حفظ اسم المستخدم Dynamic في الجلسة
-            $_SESSION['user_role'] = $user['role'] ?? 'Admin';
+            $_SESSION['user_name'] = $user['full_name'];
+            
+            // حفظ الرتبة بحروف صغيرة وتخزينها في $_SESSION['role'] لتتوافق مع checkAccess
+            $role = strtolower(trim($user['role'] ?? 'user'));
+            $_SESSION['role']      = $role;
+            $_SESSION['user_role'] = $role; // للتوافق إذا كانت مستخدمة في أجزاء أخرى
 
             header('Location: index.php');
             exit;

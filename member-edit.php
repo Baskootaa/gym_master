@@ -1,26 +1,40 @@
 <?php
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+
+// حماية الصفحة: إعادة التوجيه لصفحة الأعضاء إذا لم يكن المستخدم admin أو staff
+if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'] ?? '', ['admin', 'staff'], true)) {
+    $_SESSION['error'] = 'غير مصرح لك بالوصول لصفحة تعديل بيانات الأعضاء.';
+    header("Location: members.php");
+    exit();
+}
+
 require_once __DIR__ . '/config/db.php';
+checkAccess(['admin', 'staff']);
+
 if (!isset($_GET['id']) || !ctype_digit($_GET['id'])) {
     $_SESSION['error'] = "لم يتم تحديد العضو المطلوب تعديله.";
     header("Location: members.php");
     exit();
 }
+
 $editId = (int) $_GET['id'];
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_member'])) {
-    $full_name = trim($_POST['full_name'] ?? '');
-    $phone = trim($_POST['phone'] ?? '');
-    $email = trim($_POST['email'] ?? '');
-    $gender = $_POST['gender'] ?? 'ذكر';
-    $birth_date = $_POST['birth_date'] ?? '';
-    $address = trim($_POST['address'] ?? '');
-    $membership_type = $_POST['membership_type'] ?? 'شهري';
+    $full_name          = trim($_POST['full_name'] ?? '');
+    $phone              = trim($_POST['phone'] ?? '');
+    $email              = trim($_POST['email'] ?? '');
+    $gender             = $_POST['gender'] ?? 'ذكر';
+    $birth_date         = $_POST['birth_date'] ?? '';
+    $address            = trim($_POST['address'] ?? '');
+    $membership_type    = $_POST['membership_type'] ?? 'شهري';
     $subscription_start = $_POST['subscription_start'] ?? '';
-    $subscription_end = $_POST['subscription_end'] ?? '';
-    $status = $_POST['status'] ?? 'نشط';
-    $notes = trim($_POST['notes'] ?? '');
+    $subscription_end   = $_POST['subscription_end'] ?? '';
+    $status             = $_POST['status'] ?? 'نشط';
+    $notes              = trim($_POST['notes'] ?? '');
+
     if ($full_name === '' || $phone === '' || $subscription_start === '' || $subscription_end === '') {
         $_SESSION['error'] = "من فضلك املأ كل الحقول المطلوبة (الاسم، الهاتف، تاريخ بداية ونهاية الاشتراك).";
     } elseif ($subscription_end < $subscription_start) {
@@ -65,8 +79,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_member'])) {
         exit();
     }
 }
+
 $error = $_SESSION['error'] ?? '';
 unset($_SESSION['error']);
+
 require_once __DIR__ . '/includes/header.php';
 require_once __DIR__ . '/includes/sidebar.php';
 ?>
@@ -78,7 +94,7 @@ require_once __DIR__ . '/includes/sidebar.php';
                     <h3 class="mb-0">تعديل بيانات عضو</h3>
                 </div>
                 <div class="col-sm-6 text-end">
-                    <a href="/members.php" class="btn btn-outline-secondary">
+                    <a href="./members.php" class="btn btn-outline-secondary">
                         <i class="bi bi-arrow-right me-1"></i> رجوع لقائمة الأعضاء
                     </a>
                 </div>
@@ -95,20 +111,20 @@ require_once __DIR__ . '/includes/sidebar.php';
             <?php endif; ?>
             <div class="card card-outline card-warning">
                 <div class="card-header">
-                    <h3 class="card-title">تعديل بيانات العضو: <?= htmlspecialchars($member['full_name']) ?></h3>
+                    <h3 class="card-title">تعديل بيانات العضو: <?= htmlspecialchars($member['full_name'] ?? '') ?></h3>
                 </div>
-                <form method="POST" action="/member-edit.php?id=<?= $editId ?>">
+                <form method="POST" action="./member-edit.php?id=<?= $editId ?>">
                     <div class="card-body">
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">الاسم بالكامل <span class="text-danger">*</span></label>
                                 <input type="text" name="full_name" class="form-control"
-                                       value="<?= htmlspecialchars($member['full_name']) ?>" required>
+                                       value="<?= htmlspecialchars($member['full_name'] ?? '') ?>" required>
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">رقم الهاتف <span class="text-danger">*</span></label>
                                 <input type="tel" name="phone" class="form-control"
-                                       value="<?= htmlspecialchars($member['phone']) ?>" required>
+                                       value="<?= htmlspecialchars($member['phone'] ?? '') ?>" required>
                             </div>
                         </div>
                         <div class="row">
@@ -120,8 +136,8 @@ require_once __DIR__ . '/includes/sidebar.php';
                             <div class="col-md-3 mb-3">
                                 <label class="form-label">النوع</label>
                                 <select name="gender" class="form-select">
-                                    <option value="ذكر" <?= ($member['gender'] === 'ذكر') ? 'selected' : '' ?>>ذكر</option>
-                                    <option value="أنثى" <?= ($member['gender'] === 'أنثى') ? 'selected' : '' ?>>أنثى</option>
+                                    <option value="ذكر" <?= (($member['gender'] ?? 'ذكر') === 'ذكر') ? 'selected' : '' ?>>ذكر</option>
+                                    <option value="أنثى" <?= (($member['gender'] ?? '') === 'أنثى') ? 'selected' : '' ?>>أنثى</option>
                                 </select>
                             </div>
                             <div class="col-md-3 mb-3">
@@ -142,7 +158,7 @@ require_once __DIR__ . '/includes/sidebar.php';
                                 <label class="form-label">نوع الاشتراك</label>
                                 <select name="membership_type" class="form-select">
                                     <?php foreach (['شهري', '3 شهور', '6 شهور', 'سنوي', 'حصة يومية'] as $type): ?>
-                                        <option value="<?= $type ?>" <?= ($member['membership_type'] === $type) ? 'selected' : '' ?>>
+                                        <option value="<?= $type ?>" <?= (($member['membership_type'] ?? '') === $type) ? 'selected' : '' ?>>
                                             <?= $type ?>
                                         </option>
                                     <?php endforeach; ?>
@@ -151,12 +167,12 @@ require_once __DIR__ . '/includes/sidebar.php';
                             <div class="col-md-4 mb-3">
                                 <label class="form-label">تاريخ بداية الاشتراك <span class="text-danger">*</span></label>
                                 <input type="date" name="subscription_start" class="form-control"
-                                       value="<?= htmlspecialchars($member['subscription_start']) ?>" required>
+                                       value="<?= htmlspecialchars($member['subscription_start'] ?? '') ?>" required>
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label class="form-label">تاريخ نهاية الاشتراك <span class="text-danger">*</span></label>
                                 <input type="date" name="subscription_end" class="form-control"
-                                       value="<?= htmlspecialchars($member['subscription_end']) ?>" required>
+                                       value="<?= htmlspecialchars($member['subscription_end'] ?? '') ?>" required>
                             </div>
                         </div>
                         <div class="row">
@@ -164,7 +180,7 @@ require_once __DIR__ . '/includes/sidebar.php';
                                 <label class="form-label">حالة الاشتراك</label>
                                 <select name="status" class="form-select">
                                     <?php foreach (['نشط', 'منتهي', 'موقوف'] as $st): ?>
-                                        <option value="<?= $st ?>" <?= ($member['status'] === $st) ? 'selected' : '' ?>>
+                                        <option value="<?= $st ?>" <?= (($member['status'] ?? '') === $st) ? 'selected' : '' ?>>
                                             <?= $st ?>
                                         </option>
                                     <?php endforeach; ?>
@@ -178,7 +194,7 @@ require_once __DIR__ . '/includes/sidebar.php';
                         </div>
                     </div>
                     <div class="card-footer text-end">
-                        <a href="/members.php" class="btn btn-secondary">إلغاء</a>
+                        <a href="./members.php" class="btn btn-secondary">إلغاء</a>
                         <button type="submit" name="update_member" class="btn btn-warning">
                             <i class="bi bi-check-circle me-1"></i> حفظ التعديلات
                         </button>

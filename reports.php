@@ -1,8 +1,9 @@
 <?php
 // 1. استدعاء قواعد البيانات والهيدر
-require_once __DIR__ . '/../config/db.php';
-require_once __DIR__ . '/../includes/header.php';
-require_once __DIR__ . '/../includes/sidebar.php';
+require_once __DIR__ . '/config/db.php';
+require_once __DIR__ . '/includes/auth_check.php';
+require_once __DIR__ . '/includes/header.php';
+require_once __DIR__ . '/includes/sidebar.php';
 
 // 2. حساب إجمالي المصروفات من جدول expenses
 try {
@@ -12,16 +13,43 @@ try {
     $totalExpenses = 0;
 }
 
-// 3. حساب إجمالي الإيرادات (مجهز للربط مع جدول الاشتراكات subscriptions إذا توفر)
+// 3. حساب إيرادات الاشتراكات (ربط جدول الاشتراكات مع الباقات)
 try {
-    // لو عندكم جدول اسمه subscriptions وفيه عامود price أو price_paid
-    $stmtIncomes = $pdo->query("SELECT SUM(price) FROM subscriptions");
-    $totalIncomes = $stmtIncomes->fetchColumn() ?: 0;
+    // يحسب مجموع أسعار الباقات لجميع الاشتراكات المسجلة
+    $stmtSubsIncomes = $pdo->query("
+        SELECT SUM(p.price) 
+        FROM subscriptions s 
+        JOIN packages p ON s.package_id = p.id
+    ");
+    $subscriptionsIncomes = $stmtSubsIncomes->fetchColumn() ?: 0;
 } catch (Exception $e) {
-    $totalIncomes = 0; // في حال عدم وجود جدول الاشتراكات بعد
+    // في حال وجود حقل price المباشر داخل جدول subscriptions بدون JOIN
+    try {
+        $stmtSubsIncomes = $pdo->query("SELECT SUM(price) FROM subscriptions");
+        $subscriptionsIncomes = $stmtSubsIncomes->fetchColumn() ?: 0;
+    } catch (Exception $ex) {
+        $subscriptionsIncomes = 0;
+    }
 }
 
-// 4. حساب صافي الخزينة
+// 4. حساب إيرادات مبيعات المنتجات والمكملات (POS) من جدول sales وعامود total_price
+try {
+    $stmtPosIncomes = $pdo->query("SELECT SUM(total_price) FROM sales");
+    $posIncomes = $stmtPosIncomes->fetchColumn() ?: 0;
+} catch (Exception $e) {
+    // محاولة احتياطية في حال وجود جدول pos_sales
+    try {
+        $stmtPosIncomes = $pdo->query("SELECT SUM(total_price) FROM pos_sales");
+        $posIncomes = $stmtPosIncomes->fetchColumn() ?: 0;
+    } catch (Exception $ex) {
+        $posIncomes = 0;
+    }
+}
+
+// 5. إجمالي الإيرادات الكلي (الاشتراكات + مبيعات POS)
+$totalIncomes = $subscriptionsIncomes + $posIncomes;
+
+// 6. حساب صافي الخزينة المتبقي
 $netProfit = $totalIncomes - $totalExpenses;
 ?>
 
@@ -44,7 +72,10 @@ $netProfit = $totalIncomes - $totalExpenses;
                     <div class="small-box text-bg-success p-3 rounded shadow-sm">
                         <div class="inner">
                             <h3><?= number_format($totalIncomes, 2) ?> <small class="fs-6">ج.م</small></h3>
-                            <p class="mb-0 fs-6">إجمالي الإيرادات (الاشتراكات)</p>
+                            <p class="mb-0 fs-6">إجمالي الإيرادات (الاشتراكات + المبيعات)</p>
+                            <small class="d-block mt-1 text-white-50">
+                                اشتراكات: <?= number_format($subscriptionsIncomes, 2) ?> | مبيعات: <?= number_format($posIncomes, 2) ?>
+                            </small>
                         </div>
                     </div>
                 </div>
@@ -73,4 +104,4 @@ $netProfit = $totalIncomes - $totalExpenses;
     </div>
 </main>
 
-<?php require_once __DIR__ . '/../includes/footer.php'; ?>
+<?php require_once __DIR__ . '/includes/footer.php'; ?>
