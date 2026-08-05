@@ -125,13 +125,13 @@ require_once __DIR__ . '/includes/sidebar.php';
                                 <input type="email" name="email" class="form-control"
                                        placeholder="example@mail.com" value="<?= htmlspecialchars($member['email']) ?>">
                             </div>
-                            <div class="col-md-3 mb-3">
+                           <div class="col-md-3 mb-3">
                                 <label class="form-label">النوع</label>
                                 <select name="gender" class="form-select">
-                                    <option value="ذكر" <?= ($member['gender'] === 'ذكر') ? 'selected' : '' ?>>ذكر</option>
-                                    <option value="أنثى" <?= ($member['gender'] === 'أنثى') ? 'selected' : '' ?>>أنثى</option>
+                                    <option value="male" <?= (($member['gender'] ?? 'male') === 'male') ? 'selected' : '' ?>>ذكر</option>
+                                    <option value="female" <?= (($member['gender'] ?? '') === 'female') ? 'selected' : '' ?>>أنثى</option>
                                 </select>
-                            </div>
+                                </div>
                             <div class="col-md-3 mb-3">
                                 <label class="form-label">تاريخ الميلاد</label>
                                 <input type="date" name="birth_date" class="form-control"

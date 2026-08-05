@@ -52,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'full_name' => $full_name,
             'email'     => $email,
             'password'  => $hashedPassword,
-            'role'      => 'staff',
+            'role'      => 'user',
         ]);
 
         header('Location: login.php?registered=1');

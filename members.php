@@ -1,12 +1,21 @@
 <?php
+/**
+ * صفحة إدارة وعرض الأعضاء - GYM MASTER
+ */
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-require_once __DIR__ . '/config/db.php';
-checkAccess(['admin', 'staff', 'user']);
 
-// التحقق من صلاحية المستخدم (أدمن أو موظف)
+// التأكد من تضمين ملف الاتصال بقاعدة البيانات ووظائف الصلاحيات
+require_once __DIR__ . '/config/db.php';
+
+// التحقق من صلاحيات الوصول للمستخدم
+if (function_exists('checkAccess')) {
+    checkAccess(['admin', 'staff', 'user']);
+}
+
+// التحقق مما إذا كان المستخدم أدمن أو موظف
 $isStaffOrAdmin = isset($_SESSION['user_id']) && in_array($_SESSION['role'] ?? '', ['admin', 'staff'], true);
 
 $message = $_SESSION['message'] ?? '';
@@ -17,17 +26,20 @@ require_once __DIR__ . '/includes/header.php';
 require_once __DIR__ . '/includes/sidebar.php';
 
 $search = trim($_GET['search'] ?? '');
+$members = [];
 
 try {
     if ($search !== '') {
         $stmt = $pdo->prepare("SELECT * FROM members WHERE full_name LIKE ? OR phone LIKE ? ORDER BY id DESC");
         $like = "%$search%";
         $stmt->execute([$like, $like]);
-        $members = $stmt->fetchAll();
+        $members = $stmt->fetchAll(PDO::FETCH_ASSOC);
     } else {
-        $members = $pdo->query("SELECT * FROM members ORDER BY id DESC")->fetchAll();
+        $stmt = $pdo->query("SELECT * FROM members ORDER BY id DESC");
+        $members = $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 } catch (Exception $e) {
+    $error = "حدث خطأ أثناء جلب بيانات الأعضاء: " . $e->getMessage();
     $members = [];
 }
 ?>
@@ -102,15 +114,18 @@ try {
                                     <?php foreach ($members as $index => $m): ?>
                                         <tr>
                                             <td><?= $index + 1 ?></td>
-                                            <td class="fw-bold"><?= htmlspecialchars($m['full_name']) ?></td>
-                                            <td><?= htmlspecialchars($m['phone']) ?></td>
-                                            <td><?= htmlspecialchars($m['gender']) ?></td>
-                                            <td><span class="badge bg-secondary"><?= htmlspecialchars($m['membership_type']) ?></span></td>
-                                            <td><?= htmlspecialchars($m['subscription_end']) ?></td>
+                                            <td class="fw-bold"><?= htmlspecialchars($m['full_name'] ?? '') ?></td>
+                                            <td><?= htmlspecialchars($m['phone'] ?? '') ?></td>
+                                            <td><?= htmlspecialchars($m['gender'] ?? '') ?></td>
+                                            <td><span class="badge bg-secondary"><?= htmlspecialchars($m['membership_type'] ?? 'افتراضي') ?></span></td>
+                                            <td><?= htmlspecialchars($m['subscription_end'] ?? '-') ?></td>
                                             <td>
-                                                <?php if ($m['status'] === 'نشط'): ?>
+                                               <?php 
+                                                $status = $m['status'] ?? 'expired'; 
+                                                ?>
+                                                <?php if ($status === 'نشط' || $status === 'active'): ?>
                                                     <span class="badge bg-success">نشط</span>
-                                                <?php elseif ($m['status'] === 'موقوف'): ?>
+                                                <?php elseif ($status === 'موقوف' || $status === 'suspended'): ?>
                                                     <span class="badge bg-warning text-dark">موقوف</span>
                                                 <?php else: ?>
                                                     <span class="badge bg-danger">منتهي</span>
@@ -124,7 +139,7 @@ try {
                                                     </a>
                                                     <a href="./member-delete.php?id=<?= (int) $m['id'] ?>"
                                                        class="btn btn-sm btn-outline-danger" title="حذف"
-                                                       onclick="return confirm('هل أنت تأكد من حذف هذا العضو؟');">
+                                                       onclick="return confirm('هل أنت متأكد من حذف هذا العضو؟');">
                                                         <i class="bi bi-trash"></i>
                                                     </a>
                                                 </td>

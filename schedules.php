@@ -33,9 +33,7 @@ foreach ($rows as $row) {
 <main class="app-main">
   <!--begin::App Content Header-->
   <div class="app-content-header">
-    <!--begin::Container-->
     <div class="container-fluid">
-      <!--begin::Row-->
       <div class="row">
         <div class="col-sm-6">
           <h3 class="mb-0"><i class="bi bi-calendar-week me-2"></i>جدول الحصص والتمارين (Schedules)</h3>
@@ -48,20 +46,31 @@ foreach ($rows as $row) {
           </ol>
         </div>
       </div>
-      <!--end::Row-->
     </div>
-    <!--end::Container-->
   </div>
   <!--end::App Content Header-->
 
   <!--begin::App Content-->
   <div class="app-content">
-    <!--begin::Container-->
     <div class="container-fluid">
 
       <?php if (isset($_GET['added'])): ?>
         <div class="alert alert-success alert-dismissible fade show">
           <i class="bi bi-check-circle-fill me-2"></i> تمت إضافة الحصة بنجاح.
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      <?php endif; ?>
+
+      <?php if (isset($_GET['updated'])): ?>
+        <div class="alert alert-success alert-dismissible fade show">
+          <i class="bi bi-check-circle-fill me-2"></i> تم تحديث الحصة بنجاح.
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      <?php endif; ?>
+
+      <?php if (isset($_GET['deleted'])): ?>
+        <div class="alert alert-success alert-dismissible fade show">
+          <i class="bi bi-check-circle-fill me-2"></i> تم حذف الحصة بنجاح.
           <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
       <?php endif; ?>
@@ -97,7 +106,6 @@ foreach ($rows as $row) {
                 </button>
               </li>
             <?php endforeach; ?>
-
           </ul>
           <!--end::Day Tabs-->
 
@@ -118,12 +126,15 @@ foreach ($rows as $row) {
                         <th>المدرب</th>
                         <th>القاعة</th>
                         <th>الحالة</th>
+                        <?php if ($isStaffOrAdmin): ?>
+                          <th class="text-center">الإجراءات</th>
+                        <?php endif; ?>
                       </tr>
                     </thead>
                     <tbody>
                       <?php if (empty($schedule[$day])): ?>
                         <tr>
-                          <td colspan="5" class="text-center text-secondary py-4">
+                          <td colspan="<?php echo $isStaffOrAdmin ? '6' : '5'; ?>" class="text-center text-secondary py-4">
                             لا توجد حصص مجدولة في هذا اليوم
                           </td>
                         </tr>
@@ -141,6 +152,16 @@ foreach ($rows as $row) {
                                 <span class="badge text-bg-danger">مكتمل</span>
                               <?php endif; ?>
                             </td>
+                            <?php if ($isStaffOrAdmin): ?>
+                              <td class="text-center">
+                                <a href="./session-edit.php?id=<?php echo $session['id']; ?>" class="btn btn-sm btn-warning" title="تعديل">
+                                  <i class="bi bi-pencil-square"></i>
+                                </a>
+                                <a href="./session-delete.php?id=<?php echo $session['id']; ?>" class="btn btn-sm btn-danger" title="حذف" onclick="return confirm('هل أنت متأكد من حذف هذه الحصة؟');">
+                                  <i class="bi bi-trash"></i>
+                                </a>
+                              </td>
+                            <?php endif; ?>
                           </tr>
                         <?php endforeach; ?>
                       <?php endif; ?>
@@ -157,7 +178,6 @@ foreach ($rows as $row) {
       <!-- /.card -->
 
     </div>
-    <!--end::Container-->
   </div>
   <!--end::App Content-->
 </main>

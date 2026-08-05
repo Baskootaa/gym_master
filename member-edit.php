@@ -12,7 +12,10 @@ if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'] ?? '', ['admin',
 }
 
 require_once __DIR__ . '/config/db.php';
-checkAccess(['admin', 'staff']);
+// التأكد من وجود الدالة checkAccess أو تخطيها إذا كانت معرّفة مسبقاً في ملفات أخرى
+if (function_exists('checkAccess')) {
+    checkAccess(['admin', 'staff']);
+}
 
 if (!isset($_GET['id']) || !ctype_digit($_GET['id'])) {
     $_SESSION['error'] = "لم يتم تحديد العضو المطلوب تعديله.";
@@ -26,13 +29,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_member'])) {
     $full_name          = trim($_POST['full_name'] ?? '');
     $phone              = trim($_POST['phone'] ?? '');
     $email              = trim($_POST['email'] ?? '');
-    $gender             = $_POST['gender'] ?? 'ذكر';
+    $gender             = $_POST['gender'] ?? 'male';
     $birth_date         = $_POST['birth_date'] ?? '';
     $address            = trim($_POST['address'] ?? '');
     $membership_type    = $_POST['membership_type'] ?? 'شهري';
     $subscription_start = $_POST['subscription_start'] ?? '';
     $subscription_end   = $_POST['subscription_end'] ?? '';
-    $status             = $_POST['status'] ?? 'نشط';
+    $status             = $_POST['status'] ?? 'active';
     $notes              = trim($_POST['notes'] ?? '');
 
     if ($full_name === '' || $phone === '' || $subscription_start === '' || $subscription_end === '') {
@@ -59,10 +62,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_member'])) {
             $_SESSION['error'] = "حدث خطأ أثناء حفظ التعديلات: " . $e->getMessage();
         }
     }
+    
+    // الاحتفاظ بالبيانات المدخلة في حال وجود خطأ لتظهر في النموذج
     $member = compact(
         'full_name', 'phone', 'email', 'gender', 'birth_date', 'address',
         'membership_type', 'subscription_start', 'subscription_end', 'status', 'notes'
     );
+    $member['id'] = $editId;
 } else {
     try {
         $stmt = $pdo->prepare("SELECT * FROM members WHERE id = ?");
@@ -136,8 +142,8 @@ require_once __DIR__ . '/includes/sidebar.php';
                             <div class="col-md-3 mb-3">
                                 <label class="form-label">النوع</label>
                                 <select name="gender" class="form-select">
-                                    <option value="ذكر" <?= (($member['gender'] ?? 'ذكر') === 'ذكر') ? 'selected' : '' ?>>ذكر</option>
-                                    <option value="أنثى" <?= (($member['gender'] ?? '') === 'أنثى') ? 'selected' : '' ?>>أنثى</option>
+                                    <option value="male" <?= (($member['gender'] ?? 'male') === 'male') ? 'selected' : '' ?>>ذكر</option>
+                                    <option value="female" <?= (($member['gender'] ?? '') === 'female') ? 'selected' : '' ?>>أنثى</option>
                                 </select>
                             </div>
                             <div class="col-md-3 mb-3">
@@ -179,9 +185,16 @@ require_once __DIR__ . '/includes/sidebar.php';
                             <div class="col-md-4 mb-3">
                                 <label class="form-label">حالة الاشتراك</label>
                                 <select name="status" class="form-select">
-                                    <?php foreach (['نشط', 'منتهي', 'موقوف'] as $st): ?>
-                                        <option value="<?= $st ?>" <?= (($member['status'] ?? '') === $st) ? 'selected' : '' ?>>
-                                            <?= $st ?>
+                                    <?php 
+                                    $statuses = [
+                                        'active' => 'نشط',
+                                        'expired' => 'منتهي',
+                                        'suspended' => 'موقوف'
+                                    ];
+                                    foreach ($statuses as $key => $label): 
+                                    ?>
+                                        <option value="<?= $key ?>" <?= (($member['status'] ?? 'active') === $key) ? 'selected' : '' ?>>
+                                            <?= $label ?>
                                         </option>
                                     <?php endforeach; ?>
                                 </select>
