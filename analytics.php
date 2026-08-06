@@ -31,17 +31,40 @@ $new_members_query = $conn->query("SELECT COUNT(*) as count FROM members WHERE M
 $new_members = $new_members_query ? $new_members_query->fetch_assoc()['count'] : 0;
 
 // 5. إحصائيات الاشتراكات
-$active_subs_query = $conn->query("SELECT COUNT(*) as count FROM subscriptions WHERE status = 'active'");
-$active_subs = $active_subs_query ? $active_subs_query->fetch_assoc()['count'] : 0;
+$active_subs = 0;
+$expired_subs = 0;
 
-$expired_subs_query = $conn->query("SELECT COUNT(*) as count FROM subscriptions WHERE status = 'expired'");
-$expired_subs = $expired_subs_query ? $expired_subs_query->fetch_assoc()['count'] : 0;
+$subs_table_check = $conn->query("SHOW TABLES LIKE 'subscriptions'");
+if ($subs_table_check && $subs_table_check->num_rows > 0) {
+    $has_end_date = false;
+    $has_status = false;
+    
+    $cols_check = $conn->query("SHOW COLUMNS FROM subscriptions");
+    if ($cols_check) {
+        while ($col = $cols_check->fetch_assoc()) {
+            if ($col['Field'] === 'end_date') $has_end_date = true;
+            if ($col['Field'] === 'status') $has_status = true;
+        }
+    }
 
-// 6. حساب إجمالي الإيرادات الشامل (الاشتراكات + الفواتير/المبيعات)
+    if ($has_end_date) {
+        $active_q = $conn->query("SELECT COUNT(*) as count FROM subscriptions WHERE end_date >= CURDATE()");
+        $active_subs = $active_q ? $active_q->fetch_assoc()['count'] : 0;
+
+        $expired_q = $conn->query("SELECT COUNT(*) as count FROM subscriptions WHERE end_date < CURDATE()");
+        $expired_subs = $expired_q ? $expired_q->fetch_assoc()['count'] : 0;
+    } elseif ($has_status) {
+        $active_q = $conn->query("SELECT COUNT(*) as count FROM subscriptions WHERE LOWER(status) = 'active'");
+        $active_subs = $active_q ? $active_q->fetch_assoc()['count'] : 0;
+
+        $expired_q = $conn->query("SELECT COUNT(*) as count FROM subscriptions WHERE LOWER(status) = 'expired' OR LOWER(status) = 'inactive'");
+        $expired_subs = $expired_q ? $expired_q->fetch_assoc()['count'] : 0;
+    }
+}
+
+// 6. حساب إجمالي الإيرادات الشامل
 $total_subs_revenue = 0;
-$subs_check = $conn->query("SHOW TABLES LIKE 'subscriptions'");
-if ($subs_check && $subs_check->num_rows > 0) {
-    // معرفة اسم عامود السعر الموجود في جدول الاشتراكات تلقائياً
+if ($subs_table_check && $subs_table_check->num_rows > 0) {
     $column_to_use = null;
     $col_check = $conn->query("SHOW COLUMNS FROM subscriptions");
     if ($col_check) {
@@ -53,7 +76,6 @@ if ($subs_check && $subs_check->num_rows > 0) {
         }
     }
     
-    // إذا وجد العامود يحسب المجموع، وإلا يتجاوزه لعدم حدوث خطأ
     if ($column_to_use) {
         $subs_query = $conn->query("SELECT SUM(`$column_to_use`) as total FROM subscriptions");
         $total_subs_revenue = $subs_query ? ($subs_query->fetch_assoc()['total'] ?? 0) : 0;
@@ -63,14 +85,12 @@ if ($subs_check && $subs_check->num_rows > 0) {
 $total_inv_revenue = 0;
 $invoices_check = $conn->query("SHOW TABLES LIKE 'invoices'");
 if ($invoices_check && $invoices_check->num_rows > 0) {
-    // جلب مجموع الفواتير
     $inv_query = $conn->query("SELECT SUM(amount) as total FROM invoices WHERE type != 'subscription'");
     if (!$inv_query) {
         $inv_query = $conn->query("SELECT SUM(amount) as total FROM invoices");
     }
     $total_inv_revenue = $inv_query ? ($inv_query->fetch_assoc()['total'] ?? 0) : 0;
 } else {
-    // فحص جدول المدفوعات كبديل
     $payments_check = $conn->query("SHOW TABLES LIKE 'payments'");
     if ($payments_check && $payments_check->num_rows > 0) {
         $payments_query = $conn->query("SELECT SUM(amount) as total FROM payments");
@@ -78,10 +98,8 @@ if ($invoices_check && $invoices_check->num_rows > 0) {
     }
 }
 
-// الإيرادات الكلية
 $total_revenue = $total_subs_revenue + $total_inv_revenue;
 
-// جلب العملة من الإعدادات
 $settings_query = $conn->query("SELECT currency FROM system_settings WHERE id=1");
 $currency = ($settings_query && $settings_query->num_rows > 0) ? ($settings_query->fetch_assoc()['currency'] ?? 'ج.م') : 'ج.م';
 ?>
@@ -90,10 +108,9 @@ $currency = ($settings_query && $settings_query->num_rows > 0) ? ($settings_quer
 <?php require_once 'includes/header.php'; ?>
 <?php require_once 'includes/sidebar.php'; ?>
 
-<!-- استدعاء مكتبة Chart.js -->
+<!-- تم تصحيح رابط مكتبة Chart.js هنا -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-<!--begin::App Main-->
 <main class="app-main">
   <div class="app-content-header d-print-none">
     <div class="container-fluid">
@@ -116,7 +133,6 @@ $currency = ($settings_query && $settings_query->num_rows > 0) ? ($settings_quer
   <div class="app-content">
     <div class="container-fluid">
       
-      <!-- الكروت العلوية -->
       <div class="row">
         <div class="col-md-3 col-sm-6 col-12">
           <div class="info-box bg-primary text-white mb-4 shadow-sm">
@@ -159,7 +175,6 @@ $currency = ($settings_query && $settings_query->num_rows > 0) ? ($settings_quer
         </div>
       </div>
 
-      <!-- قسم الرسوم البيانية -->
       <div class="row">
         <div class="col-md-6">
           <div class="card card-outline card-primary mb-4 shadow-sm">
@@ -245,3 +260,4 @@ $currency = ($settings_query && $settings_query->num_rows > 0) ? ($settings_quer
 </script>
 
 <?php require_once 'includes/footer.php'; ?>
+

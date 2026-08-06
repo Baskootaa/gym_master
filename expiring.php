@@ -4,8 +4,6 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-
-
 require_once __DIR__ . '/config/db.php';
 checkAccess(['admin', 'staff', 'user']);
 
@@ -15,13 +13,12 @@ $canRenew = isset($_SESSION['user_id']) && in_array($_SESSION['role'] ?? '', ['a
 // تحديد عدد الأيام المتبقية للتصفية (افتراضياً 30 يوم)
 $days = isset($_GET['days']) && ctype_digit($_GET['days']) ? (int)$_GET['days'] : 30;
 
-// جلب الأعضاء الذين تُوشِك اشتراكاتهم على الانتهاء خلال الأيام المحددة
+// جلب الأعضاء الذين انتهت اشتراكاتهم أو توشك على الانتهاء خلال الأيام المحددة
 try {
     $stmt = $pdo->prepare("
         SELECT *, DATEDIFF(subscription_end, CURDATE()) AS days_left 
         FROM members 
-        WHERE subscription_end >= CURDATE() 
-          AND DATEDIFF(subscription_end, CURDATE()) <= ?
+        WHERE DATEDIFF(subscription_end, CURDATE()) <= ?
         ORDER BY subscription_end ASC
     ");
     $stmt->execute([$days]);
@@ -39,7 +36,7 @@ require_once __DIR__ . '/includes/sidebar.php';
         <div class="container-fluid">
             <div class="row">
                 <div class="col-sm-6">
-                    <h3 class="mb-0">اشتراكات توشك على الانتهاء</h3>
+                    <h3 class="mb-0">الاشتراكات المنتهية والقريبة على الانتهاء</h3>
                 </div>
                 <div class="col-sm-6 text-end">
                     <a href="./members.php" class="btn btn-outline-secondary">
@@ -56,7 +53,7 @@ require_once __DIR__ . '/includes/sidebar.php';
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h3 class="card-title">
                         <i class="bi bi-exclamation-triangle-fill text-warning me-1"></i>
-                        الاشتراكات المنتهية خلال
+                        الاشتراكات خلال الفترة (المنتهية والقادمة)
                     </h3>
                     <div class="card-tools">
                         <select class="form-select form-select-sm" onchange="location = this.value;">
@@ -75,7 +72,7 @@ require_once __DIR__ . '/includes/sidebar.php';
                                 <th>رقم الهاتف</th>
                                 <th>نوع الاشتراك</th>
                                 <th>تاريخ الانتهاء</th>
-                                <th>الأيام المتبقية</th>
+                                <th>الحالة / الأيام المتبقية</th>
                                 <?php if ($canRenew): ?>
                                     <th>إجراءات</th>
                                 <?php endif; ?>
@@ -83,7 +80,10 @@ require_once __DIR__ . '/includes/sidebar.php';
                         </thead>
                         <tbody>
                             <?php if (!empty($expiringMembers)): ?>
-                                <?php foreach ($expiringMembers as $index => $member): ?>
+                                <?php foreach ($expiringMembers as $index => $member): 
+                                    $daysLeft = (int)$member['days_left'];
+                                    $isExpired = $daysLeft < 0;
+                                ?>
                                     <tr>
                                         <td><?= $index + 1 ?></td>
                                         <td class="fw-bold"><?= htmlspecialchars($member['full_name']) ?></td>
@@ -91,9 +91,19 @@ require_once __DIR__ . '/includes/sidebar.php';
                                         <td><span class="badge bg-secondary"><?= htmlspecialchars($member['membership_type']) ?></span></td>
                                         <td><?= htmlspecialchars($member['subscription_end']) ?></td>
                                         <td>
-                                            <span class="badge bg-warning text-dark">
-                                                <?= $member['days_left'] ?> يوم
-                                            </span>
+                                            <?php if ($isExpired): ?>
+                                                <span class="badge bg-danger">
+                                                    منتهي منذ <?= abs($daysLeft) ?> يوم
+                                                </span>
+                                            <?php elseif ($daysLeft === 0): ?>
+                                                <span class="badge bg-warning text-dark">
+                                                    ينتهي اليوم!
+                                                </span>
+                                            <?php else: ?>
+                                                <span class="badge bg-warning text-dark">
+                                                    متبقي <?= $daysLeft ?> يوم
+                                                </span>
+                                            <?php endif; ?>
                                         </td>
                                         <?php if ($canRenew): ?>
                                             <td>
@@ -107,7 +117,7 @@ require_once __DIR__ . '/includes/sidebar.php';
                             <?php else: ?>
                                 <tr>
                                     <td colspan="<?= $canRenew ? 7 : 6 ?>" class="text-center py-3 text-muted">
-                                        لا توجد اشتراكات توشك على الانتهاء خلال هذه الفترة.
+                                        لا توجد اشتراكات منتهية أو توشك على الانتهاء خلال هذه الفترة.
                                     </td>
                                 </tr>
                             <?php endif; ?>
