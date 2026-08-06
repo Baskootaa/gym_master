@@ -256,7 +256,7 @@ if (!$current_user) {
                     <label class="form-label font-weight-bold">الصفة / المسمى (Role)</label>
                     <select class="form-select" id="role_select" name="role">
                       <option value="Staff">Staff (موظف / كابتن)</option>
-                      <option value="Trainee">متدرب (Trainee / يوزر عادي)</option>
+                      <option value="user">متدرب (User / يوزر عادي)</option>
                       <option value="Admin">Admin (مدير النظام)</option>
                     </select>
                   </div>
