@@ -29,13 +29,33 @@ $search = trim($_GET['search'] ?? '');
 $members = [];
 
 try {
+    // استعلام SQL معدل وصحيح لجلب الأعضاء مع أحدث اشتراك لهم
+    $sql = "SELECT m.*, 
+                   COALESCE(sub_latest.end_date, m.subscription_end) AS subscription_end,
+                   COALESCE(sub_latest.package_name, m.membership_type) AS membership_type,
+                   CASE 
+                       WHEN sub_latest.end_date IS NOT NULL AND sub_latest.end_date >= CURDATE() THEN 'نشط'
+                       WHEN sub_latest.end_date IS NOT NULL AND sub_latest.end_date < CURDATE() THEN 'منتهي'
+                       ELSE m.status
+                   END AS calculated_status
+            FROM members m
+            LEFT JOIN (
+                SELECT s.member_id, s.end_date, p.name AS package_name
+                FROM subscriptions s
+                LEFT JOIN packages p ON s.package_id = p.id
+                WHERE s.id IN (SELECT MAX(id) FROM subscriptions GROUP BY member_id)
+            ) sub_latest ON m.id = sub_latest.member_id";
+
     if ($search !== '') {
-        $stmt = $pdo->prepare("SELECT * FROM members WHERE full_name LIKE ? OR phone LIKE ? ORDER BY id DESC");
+        $sql .= " WHERE m.full_name LIKE ? OR m.phone LIKE ?";
+        $sql .= " ORDER BY m.id DESC";
+        $stmt = $pdo->prepare($sql);
         $like = "%$search%";
         $stmt->execute([$like, $like]);
         $members = $stmt->fetchAll(PDO::FETCH_ASSOC);
     } else {
-        $stmt = $pdo->query("SELECT * FROM members ORDER BY id DESC");
+        $sql .= " ORDER BY m.id DESC";
+        $stmt = $pdo->query($sql);
         $members = $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 } catch (Exception $e) {
@@ -121,7 +141,7 @@ try {
                                             <td><?= htmlspecialchars($m['subscription_end'] ?? '-') ?></td>
                                             <td>
                                                <?php 
-                                                $status = $m['status'] ?? 'expired'; 
+                                                $status = $m['calculated_status'] ?? $m['status'] ?? 'expired'; 
                                                 ?>
                                                 <?php if ($status === 'نشط' || $status === 'active'): ?>
                                                     <span class="badge bg-success">نشط</span>

@@ -37,7 +37,8 @@ $totalNotifications = $expiringCount + $newMembersCount + ($isAdmin ? 1 : 0);
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <title>لوحة التحكم | نظام إدارة الجيم</title>
-
+      <link rel="manifest" href="manifest.json">
+      <meta name="theme-color" content="#000000">
     <!--begin::Accessibility Meta Tags-->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
     <meta name="color-scheme" content="light dark" />
@@ -51,7 +52,7 @@ $totalNotifications = $expiringCount + $newMembersCount + ($isAdmin ? 1 : 0);
     <!--end::Primary Meta Tags-->
 
     <!--begin::Accessibility Features-->
-    <link rel="preload" href="/css/adminlte.rtl.css" as="style" />
+    <link rel="preload" href="css/adminlte.rtl.css" as="style" />
     <!--end::Accessibility Features-->
 
     <!--begin::Fonts-->
@@ -82,7 +83,7 @@ $totalNotifications = $expiringCount + $newMembersCount + ($isAdmin ? 1 : 0);
     <!--end::Third Party Plugin(Bootstrap Icons)-->
 
     <!--begin::Required Plugin(AdminLTE RTL)-->
-    <link rel="stylesheet" href="/css/adminlte.rtl.css" />
+    <link rel="stylesheet" href="css/adminlte.rtl.css" />
     <!--end::Required Plugin(AdminLTE RTL)-->
 
     <!-- apexcharts -->
@@ -194,13 +195,13 @@ $totalNotifications = $expiringCount + $newMembersCount + ($isAdmin ? 1 : 0);
             </li>
 
             <li class="nav-item d-none d-md-block">
-              <a href="/index.php" class="nav-link">
+              <a href="index.php" class="nav-link">
                 <i class="bi bi-house-door me-1" aria-hidden="true"></i>
                 الرئيسية
               </a>
             </li>
             <li class="nav-item d-none d-md-block">
-              <a href="/check-in.php" class="nav-link">
+              <a href="check-in.php" class="nav-link">
                 <i class="bi bi-qr-code-scan me-1" aria-hidden="true"></i>
                 تسجيل الدخول السريع
               </a>
@@ -238,27 +239,27 @@ $totalNotifications = $expiringCount + $newMembersCount + ($isAdmin ? 1 : 0);
                 <span class="dropdown-item dropdown-header"><?= $totalNotifications ?> تنبيهات هامة</span>
                 
                 <div class="dropdown-divider"></div>
-                <a href="/expiring.php" class="dropdown-item">
+                <a href="expiring.php" class="dropdown-item">
                   <i class="bi bi-exclamation-triangle-fill me-2 text-warning"></i> <?= $expiringCount ?> اشتراكات تنتهي قريباً
                   <span class="float-end text-secondary fs-7">مباشر</span>
                 </a>
                 
                 <div class="dropdown-divider"></div>
-                <a href="/members.php" class="dropdown-item">
+                <a href="members.php" class="dropdown-item">
                   <i class="bi bi-person-plus-fill me-2 text-success"></i> <?= $newMembersCount ?> أعضاء جدد تم تسجيلهم اليوم
                   <span class="float-end text-secondary fs-7">اليوم</span>
                 </a>
                 
                 <?php if ($isAdmin): ?>
                 <div class="dropdown-divider"></div>
-                <a href="/finance.php" class="dropdown-item">
+                <a href="finance.php" class="dropdown-item">
                   <i class="bi bi-cash-stack me-2 text-info"></i> تقرير الدخل اليومي جاهز
                   <span class="float-end text-secondary fs-7">مباشر</span>
                 </a>
                 <?php endif; ?>
 
                 <div class="dropdown-divider"></div>
-                <a href="/notifications.php" class="dropdown-item dropdown-footer">عرض كل التنبيهات</a>
+                <a href="notifications.php" class="dropdown-item dropdown-footer">عرض كل التنبيهات</a>
               </div>
             </li>
 
@@ -299,12 +300,12 @@ $totalNotifications = $expiringCount + $newMembersCount + ($isAdmin ? 1 : 0);
             <!--begin::User Menu Dropdown-->
             <li class="nav-item dropdown user-menu">
               <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown">
-                <img src="/assets/img/user2-160x160.jpg" class="user-image rounded-circle shadow" alt="User Image" />
+                <img src="assets/img/user2-160x160.jpg" class="user-image rounded-circle shadow" alt="User Image" />
                 <span class="d-none d-md-inline"><?= htmlspecialchars($displayName) ?> (<?= htmlspecialchars($displayRole) ?>)</span>
               </a>
               <ul class="dropdown-menu dropdown-menu-lg dropdown-menu-end">
                 <li class="user-header text-bg-primary">
-                  <img src="/assets/img/user2-160x160.jpg" class="rounded-circle shadow" alt="User Image" />
+                  <img src="assets/img/user2-160x160.jpg" class="rounded-circle shadow" alt="User Image" />
                   <p>
                     <?= htmlspecialchars($displayName) ?> - <?= htmlspecialchars($displayRole) ?>
                   </p>
@@ -313,13 +314,13 @@ $totalNotifications = $expiringCount + $newMembersCount + ($isAdmin ? 1 : 0);
                   <div class="row text-center">
                     <?php if ($isAdmin): ?>
                     <div class="col-4">
-                      <a href="/analytics.php" class="btn btn-link btn-sm text-decoration-none">التقارير</a>
+                      <a href="analytics.php" class="btn btn-link btn-sm text-decoration-none">التقارير</a>
                     </div>
                     <div class="col-4">
-                      <a href="/finance.php" class="btn btn-link btn-sm text-decoration-none">الخزينة</a>
+                      <a href="finance.php" class="btn btn-link btn-sm text-decoration-none">الخزينة</a>
                     </div>
                     <div class="col-4">
-                      <a href="/settings.php" class="btn btn-link btn-sm text-decoration-none">الإعدادات</a>
+                      <a href="settings.php" class="btn btn-link btn-sm text-decoration-none">الإعدادات</a>
                     </div>
                     <?php else: ?>
                     <div class="col-12">
@@ -329,8 +330,8 @@ $totalNotifications = $expiringCount + $newMembersCount + ($isAdmin ? 1 : 0);
                   </div>
                 </li>
                 <li class="user-footer">
-                  <a href="/profile.php" class="btn btn-outline-secondary">الملف الشخصي</a>
-                  <a href="/logout.php" class="btn btn-outline-danger float-end">تسجيل الخروج</a>
+                  <a href="profile.php" class="btn btn-outline-secondary">الملف الشخصي</a>
+                  <a href="logout.php" class="btn btn-outline-danger float-end">تسجيل الخروج</a>
                 </li>
               </ul>
             </li>
@@ -347,7 +348,7 @@ $totalNotifications = $expiringCount + $newMembersCount + ($isAdmin ? 1 : 0);
               <h5 class="modal-title" id="searchModalLabel"><i class="bi bi-search me-2"></i>البحث عن عضو</h5>
               <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form action="/members.php" method="GET">
+            <form action="members.php" method="GET">
               <div class="modal-body">
                 <div class="input-group">
                   <input type="text" name="search" class="form-control" placeholder="ادخل اسم العضو أو رقم الهاتف..." required autofocus>

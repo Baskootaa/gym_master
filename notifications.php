@@ -33,7 +33,7 @@ require_once __DIR__ . '/includes/sidebar.php';
         <div class="card-body">
           <div class="list-group">
             
-            <a href="/expiring.php" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+            <a href="/gym_master/expiring.php" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
               <div>
                 <i class="bi bi-exclamation-triangle-fill text-warning me-2 fs-5"></i>
                 <strong>الاشتراكات المنتهية قريباً:</strong> يوجد <strong><?= $expiringCount ?></strong> اشتراكات تنتهي خلال الـ 3 أيام القادمة.
@@ -41,7 +41,7 @@ require_once __DIR__ . '/includes/sidebar.php';
               <span class="badge bg-warning rounded-pill">متابعة</span>
             </a>
 
-            <a href="/members.php" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+            <a href="/gym_master/members.php" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
               <div>
                 <i class="bi bi-person-plus-fill text-success me-2 fs-5"></i>
                 <strong>الأعضاء الجدد:</strong> تم تسجيل <strong><?= $newMembersCount ?></strong> أعضاء جدد اليوم.
@@ -50,7 +50,7 @@ require_once __DIR__ . '/includes/sidebar.php';
             </a>
 
             <?php if ($isAdmin): ?>
-            <a href="/finance/index.php" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+            <a href="/gym_master/reports.php" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
               <div>
                 <i class="bi bi-cash-stack text-info me-2 fs-5"></i>
                 <strong>التقرير المالي:</strong> تقرير الدخل اليومي جاهز للمراجعة.

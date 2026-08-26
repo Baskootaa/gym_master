@@ -62,6 +62,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ]);
                 }
 
+                // تحديث تاريخ نهاية الاشتراك والحالة في جدول الأعضاء أوتوماتيكياً
+                $update_member = $pdo->prepare('UPDATE members SET subscription_end_date = :end_date, status = "active" WHERE id = :member_id');
+                $update_member->execute([
+                    'end_date'   => $end_date,
+                    'member_id'  => $member_id
+                ]);
+
                 header('Location: subscriptions.php?added=1');
                 exit;
             }
@@ -239,4 +246,3 @@ require_once 'includes/sidebar.php';
 </main>
 
 <?php require_once 'includes/footer.php'; ?>
-

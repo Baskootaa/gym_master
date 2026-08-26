@@ -22,12 +22,12 @@ if (!$trainer) {
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-    $name       = trim($_POST['name'] ?? '');
-    $specialty  = trim($_POST['specialty'] ?? '');
-    $phone      = trim($_POST['phone'] ?? '');
+    $name         = trim($_POST['name'] ?? '');
+    $specialty   = trim($_POST['specialty'] ?? '');
+    $phone       = trim($_POST['phone'] ?? '');
     $experience = $_POST['experience_years'] ?? '';
-    $status     = $_POST['status'] ?? 'نشط';
-    $photo      = $trainer['photo']; 
+    $status      = $_POST['status'] ?? 'نشط';
+    $photo       = $trainer['photo']; 
 
     if ($name === '') {
         $errors[] = 'اسم المدرب مطلوب.';
@@ -48,7 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     $allowedExtensions = ['jpg', 'jpeg', 'png', 'webp'];
-    $maxSizeBytes       = 2 * 1024 * 1024;
+    $maxSizeBytes        = 2 * 1024 * 1024;
 
     if (isset($_FILES['photo']) && $_FILES['photo']['error'] !== UPLOAD_ERR_NO_FILE) {
 
@@ -67,18 +67,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } elseif (@getimagesize($tmpPath) === false) {
                 $errors[] = 'الملف المرفوع مش صورة صحيحة.';
             } else {
-                $newFileName = 'trainer_' . uniqid() . '.' . $extension;
-                $uploadDir   = __DIR__ . '/assets/img/trainers/';
+                // التأكد من وجود مجلد الصور بمسار صحيح وإنشاؤه تلقائياً لو غير موجود
+                $uploadDir = __DIR__ . '/assets/img/trainers/';
 
                 if (!is_dir($uploadDir)) {
-                    mkdir($uploadDir, 0755, true);
+                    @mkdir($uploadDir, 0777, true);
+                }
+                @chmod(__DIR__ . '/assets', 0777);
+                @chmod(__DIR__ . '/assets/img', 0777);
+                @chmod($uploadDir, 0777);
+
+                // تسمية الصورة باسم نظيف وثابت يعتمد على الـ ID الخاص بالمدرب
+                $newFileName = 'trainer_' . (int) $trainer['id'] . '.' . $extension;
+
+                // مسح أي صيغ قديمة لنفس المدرب لمنع تكرار الملفات
+                foreach ($allowedExtensions as $ext) {
+                    $oldExtFile = $uploadDir . 'trainer_' . (int) $trainer['id'] . '.' . $ext;
+                    if (file_exists($oldExtFile)) {
+                        @unlink($oldExtFile);
+                    }
                 }
 
                 if (move_uploaded_file($tmpPath, $uploadDir . $newFileName)) {
                     $oldPhoto = $trainer['photo'];
                     $photo    = 'trainers/' . $newFileName;
                 } else {
-                    $errors[] = 'فشل حفظ الصورة الجديدة على السيرفر.';
+                    $phpFileUploadErrors = array(
+                        0 => 'There is no error, the file uploaded with success',
+                        1 => 'The uploaded file exceeds the upload_max_filesize directive in php.ini',
+                        2 => 'The uploaded file exceeds the MAX_FILE_SIZE directive that was specified in the HTML form',
+                        3 => 'The uploaded file was only partially uploaded',
+                        4 => 'No file was uploaded',
+                        6 => 'Missing a temporary folder',
+                        7 => 'Failed to write file to disk.',
+                        8 => 'A PHP extension stopped the file upload.'
+                    );
+                    $errorCode = $_FILES['photo']['error'];
+                    $errors[] = 'فشل حفظ الصورة. تفاصيل الخطأ: ' . ($phpFileUploadErrors[$errorCode] ?? 'Unknown error') . ' | المسار: ' . $uploadDir;
                 }
             }
         }
@@ -108,7 +133,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (isset($oldPhoto) && strpos($oldPhoto, 'trainers/') === 0) {
             $oldPath = __DIR__ . '/assets/img/' . $oldPhoto;
             if (file_exists($oldPath)) {
-                unlink($oldPath);
+                @unlink($oldPath);
             }
         }
 

@@ -47,6 +47,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $allowedExtensions = ['jpg', 'jpeg', 'png', 'webp'];
     $maxSizeBytes       = 2 * 1024 * 1024; // 2 ميجا
 
+    $tmpPath      = '';
+    $extension    = '';
+
     if (!isset($_FILES['photo']) || $_FILES['photo']['error'] === UPLOAD_ERR_NO_FILE) {
         $errors[] = 'لازم ترفع صورة للمدرب.';
     } elseif ($_FILES['photo']['error'] !== UPLOAD_ERR_OK) {
@@ -63,23 +66,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $errors[] = 'حجم الصورة أكبر من 2 ميجابايت.';
         } elseif (@getimagesize($tmpPath) === false) {
             $errors[] = 'الملف المرفوع مش صورة صحيحة.';
-        } else {
-            $newFileName = 'trainer_' . uniqid() . '.' . $extension;
-            $uploadDir   = __DIR__ . '/assets/img/trainers/';
-
-            if (!is_dir($uploadDir)) {
-                mkdir($uploadDir, 0755, true);
-            }
-
-            if (move_uploaded_file($tmpPath, $uploadDir . $newFileName)) {
-                $photo = 'trainers/' . $newFileName; 
-            } else {
-                $errors[] = 'فشل حفظ الصورة على السيرفر.';
-            }
         }
     }
 
     if (empty($errors)) {
+        // الخطوة أ: إدخال بيانات المدرب الأول في قاعدة البيانات للحصول على الـ ID الخاص به
         $sql = 'INSERT INTO trainers (name, specialty, phone, experience_years, photo, status)
                 VALUES (:name, :specialty, :phone, :experience_years, :photo, :status)';
 
@@ -89,12 +80,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ':specialty'        => $specialty,
             ':phone'            => $phone,
             ':experience_years' => (int) $experience,
-            ':photo'            => $photo,
+            ':photo'            => '', // قيمة مؤقتة مؤقتاً لحين حفظ الصورة بالـ ID
             ':status'           => $status,
         ]);
 
-        header('Location: trainers.php?added=1');
-        exit;
+        $newTrainerId = $pdo->lastInsertId();
+
+        // الخطوة ب: تسمية الصورة الحقيقية بناءً على الـ ID الفعلي للمدرب
+        $newFileName = 'trainer_' . $newTrainerId . '.' . $extension;
+        $uploadDir   = __DIR__ . '/assets/img/trainers/';
+
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0755, true);
+        }
+
+        if (move_uploaded_file($tmpPath, $uploadDir . $newFileName)) {
+            $photo = 'trainers/' . $newFileName;
+
+            // الخطوة ج: تحديث حقل الصورة في القاعدة بالمسار الصحيح النهائي
+            $updateStmt = $pdo->prepare('UPDATE trainers SET photo = :photo WHERE id = :id');
+            $updateStmt->execute([
+                ':photo' => $photo,
+                ':id'    => $newTrainerId
+            ]);
+        } else {
+            // لو فشل رفع الصورة، ممكن نلغي المدرب أو نترك حقل الصورة فارغ، بس هنا بنسجل الخطأ لو حبينا أو بنعدلها
+            $errors[] = 'فشل حفظ الصورة على السيرفر.';
+        }
+
+        if (empty($errors)) {
+            header('Location: trainers.php?added=1');
+            exit;
+        }
     }
 }
 
@@ -229,4 +246,3 @@ require_once 'includes/sidebar.php';
 <!--end::App Main-->
 
 <?php require_once 'includes/footer.php'; ?>
-

@@ -14,44 +14,106 @@ $user_id = $_SESSION['user_id'] ?? $_SESSION['id'] ?? 0;
 
 // معالجة تحديث البيانات عند إرسال الفورم (POST)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
-    $name  = trim($_POST['name'] ?? '');
-    $email = trim($_POST['email'] ?? '');
-    $phone = trim($_POST['phone'] ?? '');
+    $name     = trim($_POST['name'] ?? '');
+    $email    = trim($_POST['email'] ?? '');
+    $phone    = trim($_POST['phone'] ?? '');
     $password = $_POST['password'] ?? '';
+    
+    $avatar_filename = null;
+
+    // معالجة رفع الصورة الشخصية إذا تم اختيار صورة
+    if (isset($_FILES['avatar']) && $_FILES['avatar']['error'] === UPLOAD_ERR_OK) {
+        $fileTmpPath   = $_FILES['avatar']['tmp_name'];
+        $fileName      = $_FILES['avatar']['name'];
+        $fileExtension = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+        
+        $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif'];
+        
+        if (in_array($fileExtension, $allowedExtensions)) {
+            // توجيه مسار الرفع إلى مجلد uploads/avatars/ لتتوافق مع الـ header.php
+            $uploadFileDir = __DIR__ . '/uploads/avatars/';
+            if (!is_dir($uploadFileDir)) {
+                mkdir($uploadFileDir, 0755, true);
+            }
+            
+            // تسمية الصورة باسم نظيف وثابت يعتمد على الـ ID الخاص بالمستخدم وامتداد الملف فقط
+            $newFileName = 'avatar_' . $user_id . '.' . $fileExtension;
+            $dest_path   = $uploadFileDir . $newFileName;
+            
+            // حذف أي امتدادات أخرى قديمة لنفس المستخدم لو تم تغيير صيغة الصورة
+            foreach ($allowedExtensions as $ext) {
+                $oldFile = $uploadFileDir . 'avatar_' . $user_id . '.' . $ext;
+                if (file_exists($oldFile)) {
+                    @unlink($oldFile);
+                }
+            }
+            
+            if (move_uploaded_file($fileTmpPath, $dest_path)) {
+                // حفظ اسم الملف فقط ليطابق آلية الجلب في الـ header.php
+                $avatar_filename = $newFileName;
+            }
+        }
+    }
 
     if (!empty($name) && !empty($email) && $user_id > 0) {
         try {
-            // التحقق مما إذا كان سيتم تحديث كلمة المرور أم لا
+            // التحقق مما إذا كان سيتم تحديث كلمة المرور وصورة البروفايل أم لا
             if (!empty($password)) {
                 $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
                 
-                // محاولة التحديث مع كلمة المرور ورقم الهاتف باستخدام full_name أولاً ثم name
-                try {
-                    $stmt = $pdo->prepare("UPDATE users SET full_name = ?, email = ?, phone = ?, password = ? WHERE id = ?");
-                    $stmt->execute([$name, $email, $phone, $hashedPassword, $user_id]);
-                } catch (Exception $ex) {
+                if ($avatar_filename !== null) {
                     try {
-                        $stmt = $pdo->prepare("UPDATE users SET name = ?, email = ?, phone = ?, password = ? WHERE id = ?");
+                        $stmt = $pdo->prepare("UPDATE users SET full_name = ?, email = ?, phone = ?, password = ?, avatar = ? WHERE id = ?");
+                        $stmt->execute([$name, $email, $phone, $hashedPassword, $avatar_filename, $user_id]);
+                    } catch (Exception $ex) {
+                        try {
+                            $stmt = $pdo->prepare("UPDATE users SET name = ?, email = ?, phone = ?, password = ?, avatar = ? WHERE id = ?");
+                            $stmt->execute([$name, $email, $phone, $hashedPassword, $avatar_filename, $user_id]);
+                        } catch (Exception $e2) {
+                            $stmt = $pdo->prepare("UPDATE users SET full_name = ?, email = ?, password = ?, avatar = ? WHERE id = ?");
+                            $stmt->execute([$name, $email, $hashedPassword, $avatar_filename, $user_id]);
+                        }
+                    }
+                } else {
+                    try {
+                        $stmt = $pdo->prepare("UPDATE users SET full_name = ?, email = ?, phone = ?, password = ? WHERE id = ?");
                         $stmt->execute([$name, $email, $phone, $hashedPassword, $user_id]);
-                    } catch (Exception $e2) {
-                        // لو عامود phone مش موجود في جدول users
-                        $stmt = $pdo->prepare("UPDATE users SET full_name = ?, email = ?, password = ? WHERE id = ?");
-                        $stmt->execute([$name, $email, $hashedPassword, $user_id]);
+                    } catch (Exception $ex) {
+                        try {
+                            $stmt = $pdo->prepare("UPDATE users SET name = ?, email = ?, phone = ?, password = ? WHERE id = ?");
+                            $stmt->execute([$name, $email, $phone, $hashedPassword, $user_id]);
+                        } catch (Exception $e2) {
+                            $stmt = $pdo->prepare("UPDATE users SET full_name = ?, email = ?, password = ? WHERE id = ?");
+                            $stmt->execute([$name, $email, $hashedPassword, $user_id]);
+                        }
                     }
                 }
             } else {
-                // التحديث بدون تغيير كلمة المرور
-                try {
-                    $stmt = $pdo->prepare("UPDATE users SET full_name = ?, email = ?, phone = ? WHERE id = ?");
-                    $stmt->execute([$name, $email, $phone, $user_id]);
-                } catch (Exception $ex) {
+                if ($avatar_filename !== null) {
                     try {
-                        $stmt = $pdo->prepare("UPDATE users SET name = ?, email = ?, phone = ? WHERE id = ?");
+                        $stmt = $pdo->prepare("UPDATE users SET full_name = ?, email = ?, phone = ?, avatar = ? WHERE id = ?");
+                        $stmt->execute([$name, $email, $phone, $avatar_filename, $user_id]);
+                    } catch (Exception $ex) {
+                        try {
+                            $stmt = $pdo->prepare("UPDATE users SET name = ?, email = ?, phone = ?, avatar = ? WHERE id = ?");
+                            $stmt->execute([$name, $email, $phone, $avatar_filename, $user_id]);
+                        } catch (Exception $e2) {
+                            $stmt = $pdo->prepare("UPDATE users SET full_name = ?, email = ?, avatar = ? WHERE id = ?");
+                            $stmt->execute([$name, $email, $avatar_filename, $user_id]);
+                        }
+                    }
+                } else {
+                    try {
+                        $stmt = $pdo->prepare("UPDATE users SET full_name = ?, email = ?, phone = ? WHERE id = ?");
                         $stmt->execute([$name, $email, $phone, $user_id]);
-                    } catch (Exception $e2) {
-                        // لو عامود phone مش موجود في جدول users
-                        $stmt = $pdo->prepare("UPDATE users SET full_name = ?, email = ? WHERE id = ?");
-                        $stmt->execute([$name, $email, $user_id]);
+                    } catch (Exception $ex) {
+                        try {
+                            $stmt = $pdo->prepare("UPDATE users SET name = ?, email = ?, phone = ? WHERE id = ?");
+                            $stmt->execute([$name, $email, $phone, $user_id]);
+                        } catch (Exception $e2) {
+                            $stmt = $pdo->prepare("UPDATE users SET full_name = ?, email = ? WHERE id = ?");
+                            $stmt->execute([$name, $email, $user_id]);
+                        }
                     }
                 }
             }
@@ -61,6 +123,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
             if (isset($_SESSION['name'])) $_SESSION['name'] = $name;
             if (isset($_SESSION['user_name'])) $_SESSION['user_name'] = $name;
             $_SESSION['email'] = $email;
+            if ($avatar_filename !== null && isset($_SESSION['avatar'])) {
+                $_SESSION['avatar'] = 'uploads/avatars/' . $avatar_filename;
+            }
 
             $message = "تم تحديث البيانات الشخصية بنجاح!";
             $messageType = "success";
@@ -87,6 +152,18 @@ try {
 $current_name = $user['full_name'] ?? $user['name'] ?? $_SESSION['full_name'] ?? $_SESSION['name'] ?? '';
 $current_email = $user['email'] ?? $_SESSION['email'] ?? '';
 $current_phone = $user['phone'] ?? $user['mobile'] ?? $user['telephone'] ?? '';
+$current_avatar_db = $user['avatar'] ?? '';
+
+// تجهيز مسار الصورة لعرضها في صفحة البروفايل بشكل سليم
+$current_avatar_display = '';
+if (!empty($current_avatar_db)) {
+    // إذا كان المسار مخزناً كاملاً أو اسم ملف فقط
+    if (strpos($current_avatar_db, 'uploads/') === 0) {
+        $current_avatar_display = BASE_URL . $current_avatar_db;
+    } else {
+        $current_avatar_display = BASE_URL . 'uploads/avatars/' . $current_avatar_db;
+    }
+}
 
 require_once __DIR__ . '/includes/header.php';
 require_once __DIR__ . '/includes/sidebar.php';
@@ -115,7 +192,7 @@ require_once __DIR__ . '/includes/sidebar.php';
                             <h5 class="card-title mb-0">تعديل البيانات الشخصية</h5>
                         </div>
                         <div class="card-body">
-                            <form method="POST" action="profile.php">
+                            <form method="POST" action="profile.php" enctype="multipart/form-data">
                                 <div class="mb-3">
                                     <label class="form-label fw-bold">الاسم بالكامل</label>
                                     <input type="text" name="name" class="form-control" value="<?= htmlspecialchars($current_name) ?>" required>
@@ -129,6 +206,17 @@ require_once __DIR__ . '/includes/sidebar.php';
                                 <div class="mb-3">
                                     <label class="form-label fw-bold">رقم المحمول</label>
                                     <input type="text" name="phone" class="form-control" value="<?= htmlspecialchars($current_phone) ?>" placeholder="أدخل رقم الهاتف">
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">الصورة الشخصية (اختياري)</label>
+                                    <input type="file" name="avatar" class="form-control" accept="image/*">
+                                    <?php if (!empty($current_avatar_display)): ?>
+                                        <div class="mt-2">
+                                            <small class="text-muted">الصورة الحالية:</small><br>
+                                            <img src="<?= htmlspecialchars($current_avatar_display) ?>" alt="Avatar" class="rounded-circle mt-1" width="60" height="60" style="object-fit: cover;">
+                                        </div>
+                                    <?php endif; ?>
                                 </div>
 
                                 <div class="mb-4">

@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Aug 05, 2026 at 09:47 PM
+-- Generation Time: Aug 22, 2026 at 11:26 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -40,7 +40,8 @@ CREATE TABLE `check_ins` (
 INSERT INTO `check_ins` (`id`, `member_id`, `check_in_time`) VALUES
 (1, 3, '2026-08-04 22:31:28'),
 (2, 3, '2026-08-05 16:47:03'),
-(3, 5, '2026-08-05 16:47:10');
+(3, 5, '2026-08-05 16:47:10'),
+(4, 10, '2026-08-06 10:38:27');
 
 -- --------------------------------------------------------
 
@@ -119,7 +120,11 @@ CREATE TABLE `members` (
 
 INSERT INTO `members` (`id`, `full_name`, `phone`, `email`, `address`, `gender`, `birth_date`, `join_date`, `notes`, `created_at`, `membership_type`, `subscription_start`, `subscription_end`, `status`) VALUES
 (3, 'احمد محمد', '01223232323', 'ahmed@gmail.com', 'الغربية مركز سمنود', 'male', '2005-01-11', '0000-00-00', NULL, '2026-08-04 15:35:15', 'شهري', '2026-08-04', '2026-09-05', 'نشط'),
-(5, 'كريم محمد', '01221212121', 'kareem@gmail.com', 'المنصورة طلخا', 'male', '2000-07-12', '0000-00-00', NULL, '2026-08-04 18:58:32', 'شهري', '2026-07-15', '2026-08-15', 'نشط');
+(5, 'كريم محمد', '01221212121', 'kareem@gmail.com', 'المنصورة طلخا', 'male', '2000-07-12', '0000-00-00', NULL, '2026-08-04 18:58:32', 'شهري', '2026-07-15', '2026-08-15', 'منتهي'),
+(9, 'محمود احمد', '01278787878', 'mahmoud@gmail.com', 'المنصورة طلخا', 'male', '2008-12-10', '0000-00-00', NULL, '2026-08-05 21:41:09', 'شهري', '2026-08-06', '2026-09-07', 'نشط'),
+(10, 'عمر محمد', '01289898989', 'omar@gmail.com', 'الغربية  سمنود', 'male', '2005-06-15', '0000-00-00', NULL, '2026-08-06 07:35:14', '3 شهور', '2026-08-06', '2026-11-06', 'نشط'),
+(11, 'ايمن محمد', '01236363636', NULL, 'المنصورة طلخا', 'male', '2006-10-11', '0000-00-00', NULL, '2026-08-06 07:43:38', 'شهري', '2026-07-03', '2026-08-03', 'expired'),
+(12, 'محمود كريم', '01258585858', 'mahmoud@gmail.com', 'الغربية  سمنود', 'male', '2005-12-15', '0000-00-00', NULL, '2026-08-06 09:58:59', 'شهري', '2026-08-06', '2026-09-07', 'نشط');
 
 -- --------------------------------------------------------
 
@@ -166,7 +171,7 @@ CREATE TABLE `products` (
 
 INSERT INTO `products` (`id`, `name`, `category`, `price`, `quantity`, `created_at`) VALUES
 (1, 'مياه', 'مشروبات', 10.00, 36, '2026-08-02 18:22:16'),
-(2, 'تويست', 'مشروبات', 20.00, 46, '2026-08-02 18:51:04'),
+(2, 'تويست', 'مشروبات', 20.00, 45, '2026-08-02 18:51:04'),
 (3, 'قهوة', 'مشروبات', 20.00, 98, '2026-08-02 18:51:35');
 
 -- --------------------------------------------------------
@@ -195,7 +200,8 @@ INSERT INTO `sales` (`id`, `product_id`, `quantity`, `total_price`, `created_at`
 (7, 1, 1, 10.00, '2026-08-05 14:03:17'),
 (8, 1, 1, 10.00, '2026-08-05 14:08:14'),
 (9, 1, 1, 10.00, '2026-08-05 14:09:02'),
-(10, 2, 1, 20.00, '2026-08-05 19:12:16');
+(10, 2, 1, 20.00, '2026-08-05 19:12:16'),
+(11, 2, 1, 20.00, '2026-08-06 10:00:48');
 
 -- --------------------------------------------------------
 
@@ -221,7 +227,7 @@ CREATE TABLE `schedule_sessions` (
 INSERT INTO `schedule_sessions` (`id`, `trainer_id`, `day_name`, `time_range`, `session_name`, `room`, `status`, `sort_order`) VALUES
 (1, 3, 'السبت', '06:00 ص - 07:00 ص', 'كروس فيت', 'قاعة 1', 'متاح', 1),
 (2, 2, 'السبت', '10:00 ص - 11:00 ص', 'يوجا وبيلاتس', 'قاعة الاستوديو', 'متاح', 2),
-(3, 1, 'السبت', '06:00 م - 07:00 م', 'كمال أجسام', 'صالة الأوزان', 'مكتمل', 3),
+(3, 1, 'السبت', '06:00 م - 07:00 م', 'كمال أجسام', 'صالة الأوزان', 'متاح', 3),
 (4, 4, 'الأحد', '07:00 ص - 08:00 ص', 'سباحة', 'المسبح', 'متاح', 1),
 (5, 6, 'الأحد', '05:00 م - 06:00 م', 'زومبا وكارديو', 'قاعة الاستوديو', 'متاح', 2),
 (6, 5, 'الأحد', '07:00 م - 08:00 م', 'ملاكمة ودفاع عن النفس', 'قاعة 2', 'متاح', 3),
@@ -234,8 +240,7 @@ INSERT INTO `schedule_sessions` (`id`, `trainer_id`, `day_name`, `time_range`, `
 (13, 3, 'الأربعاء', '06:00 م - 07:00 م', 'كروس فيت', 'قاعة 1', 'متاح', 2),
 (14, 2, 'الخميس', '10:00 ص - 11:00 ص', 'يوجا وبيلاتس', 'قاعة الاستوديو', 'متاح', 1),
 (15, 1, 'الخميس', '06:00 م - 07:00 م', 'كمال أجسام', 'صالة الأوزان', 'متاح', 2),
-(16, 6, 'الخميس', '08:00 م - 09:00 م', 'زومبا وكارديو', 'قاعة الاستوديو', 'متاح', 3),
-(17, 1, 'السبت', '12:30 ص - 02:30 م', 'يوجا', 'قاعة 2', 'متاح', 4);
+(16, 6, 'الخميس', '08:00 م - 09:00 م', 'زومبا وكارديو', 'قاعة الاستوديو', 'متاح', 3);
 
 -- --------------------------------------------------------
 
@@ -259,7 +264,11 @@ CREATE TABLE `subscriptions` (
 
 INSERT INTO `subscriptions` (`id`, `member_id`, `package_id`, `start_date`, `end_date`, `created_at`, `status`) VALUES
 (1, 3, 1, '2026-08-04', '2026-09-03', '2026-08-04 16:58:17', 'active'),
-(6, 5, 1, '2026-08-16', '2026-09-15', '2026-08-04 19:18:07', 'active');
+(6, 5, 1, '2026-07-16', '2026-08-15', '2026-08-04 19:18:07', 'expired'),
+(7, 9, 1, '2026-08-06', '2026-09-05', '2026-08-05 21:41:52', 'active'),
+(8, 10, 2, '2026-08-06', '2026-11-04', '2026-08-06 07:39:16', 'active'),
+(9, 11, 1, '2026-07-03', '2026-08-02', '2026-08-06 07:45:02', 'active'),
+(10, 12, 3, '2026-08-06', '2027-08-06', '2026-08-06 09:59:31', 'active');
 
 -- --------------------------------------------------------
 
@@ -312,7 +321,7 @@ INSERT INTO `trainers` (`id`, `name`, `specialty`, `phone`, `experience_years`, 
 (3, 'محمد عادل', 'كروس فيت', '01123456789', 6, 'trainers/trainer_6a71febc4ddb7.jpg', 'نشط', '2026-08-03 12:44:06'),
 (4, 'نورهان طارق', 'سباحة', '01234567890', 4, 'user4-128x128.jpg', 'إجازة', '2026-08-03 12:44:06'),
 (5, 'خالد سمير', 'ملاكمة ودفاع عن النفس', '01555555555', 10, 'trainers/trainer_6a71fe93161cc.jpg', 'نشط', '2026-08-03 12:44:06'),
-(6, 'مريم حسن', 'زومبا وكارديو', '01211111111', 3, 'trainers/trainer_6a71fe66414d6.jpg', 'نشط', '2026-08-03 12:44:06');
+(6, 'مريم حسن', 'زومبا وكارديو', '01211111111', 2, 'trainers/trainer_6a71fe66414d6.jpg', 'نشط', '2026-08-03 12:44:06');
 
 -- --------------------------------------------------------
 
@@ -336,8 +345,9 @@ CREATE TABLE `users` (
 
 INSERT INTO `users` (`id`, `full_name`, `email`, `password`, `phone`, `role`, `created_at`) VALUES
 (1, 'mazen elbasyouny', 'mazen@gmail.com', '$2y$10$uccy7q3Yvw4M6EhI1Ig68uXVksguYLG9iO6QQg83nVLXqKwBthZyC', '01228249057', 'admin', '2026-08-04 14:36:03'),
-(2, 'kareem mohamed', 'kareem@gmail.com', '$2y$10$l.DG5Czzd0hEdvSl0V.E1eVuYjIP02acnG7Zqq0tJ4G4kMfKIuqf.', '', 'staff', '2026-08-04 19:27:13'),
-(3, 'ismail ahmed', 'ismail@gmail.com', '$2y$10$GufJZlZcvIVFjsoJp6V4Ie9ToM770uK2yJN7dJksCTuFw7txwZhBW', '', 'staff', '2026-08-05 16:54:27');
+(2, 'kareem mohamed', 'kareem@gmail.com', '$2y$10$l.DG5Czzd0hEdvSl0V.E1eVuYjIP02acnG7Zqq0tJ4G4kMfKIuqf.', '01225252525', 'user', '2026-08-04 19:27:13'),
+(3, 'ismail ahmed', 'ismail@gmail.com', '$2y$10$GufJZlZcvIVFjsoJp6V4Ie9ToM770uK2yJN7dJksCTuFw7txwZhBW', '01252525252', 'staff', '2026-08-05 16:54:27'),
+(5, 'mahmoud mohamed', 'mahmoud@gmail.com', '$2y$10$BsWfse3A2DEoMQ45YptpRuTamwvZSa3Hcod67Z0sfUR1tBNLo.ru.', '01278787878', 'user', '2026-08-05 21:05:52');
 
 --
 -- Indexes for dumped tables
@@ -429,7 +439,7 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `check_ins`
 --
 ALTER TABLE `check_ins`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `expenses`
@@ -447,7 +457,7 @@ ALTER TABLE `invoices`
 -- AUTO_INCREMENT for table `members`
 --
 ALTER TABLE `members`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
 -- AUTO_INCREMENT for table `packages`
@@ -465,19 +475,19 @@ ALTER TABLE `products`
 -- AUTO_INCREMENT for table `sales`
 --
 ALTER TABLE `sales`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
 
 --
 -- AUTO_INCREMENT for table `schedule_sessions`
 --
 ALTER TABLE `schedule_sessions`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
 
 --
 -- AUTO_INCREMENT for table `subscriptions`
 --
 ALTER TABLE `subscriptions`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- AUTO_INCREMENT for table `system_settings`
@@ -489,13 +499,13 @@ ALTER TABLE `system_settings`
 -- AUTO_INCREMENT for table `trainers`
 --
 ALTER TABLE `trainers`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- Constraints for dumped tables

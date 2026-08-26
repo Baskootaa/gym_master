@@ -153,8 +153,13 @@ try {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <?php if (!empty($recentSales)): ?>
-                                        <?php foreach ($recentSales as $sale): ?>
+                                    <?php 
+                                    $grand_total = 0;
+                                    if (!empty($recentSales)): 
+                                    ?>
+                                        <?php foreach ($recentSales as $sale): 
+                                            $grand_total += $sale['total_price'];
+                                        ?>
                                             <tr>
                                                 <td class="fw-bold"><?= htmlspecialchars($sale['product_name']) ?></td>
                                                 <td><?= $sale['quantity'] ?></td>
@@ -168,6 +173,14 @@ try {
                                         </tr>
                                     <?php endif; ?>
                                 </tbody>
+                                <?php if (!empty($recentSales)): ?>
+                                    <tfoot>
+                                        <tr class="table-active">
+                                            <th colspan="2" class="text-end">الإجمالي الكلي (لآخر عمليات):</th>
+                                            <th colspan="2" class="text-success fw-bold fs-5"><?= number_format($grand_total, 2) ?> ج.م</th>
+                                        </tr>
+                                    </tfoot>
+                                <?php endif; ?>
                             </table>
                         </div>
                     </div>

@@ -7,19 +7,26 @@ if (session_status() === PHP_SESSION_NONE) {
 require_once __DIR__ . '/config/db.php';
 checkAccess(['admin', 'staff', 'user']);
 
-// التحقق مما إذا كان المستخدم يملك صلاحية التجديد (Admin أو Staff)
 $canRenew = isset($_SESSION['user_id']) && in_array($_SESSION['role'] ?? '', ['admin', 'staff'], true);
 
-// تحديد عدد الأيام المتبقية للتصفية (افتراضياً 30 يوم)
 $days = isset($_GET['days']) && ctype_digit($_GET['days']) ? (int)$_GET['days'] : 30;
 
-// جلب الأعضاء الذين انتهت اشتراكاتهم أو توشك على الانتهاء خلال الأيام المحددة
 try {
     $stmt = $pdo->prepare("
-        SELECT *, DATEDIFF(subscription_end, CURDATE()) AS days_left 
-        FROM members 
-        WHERE DATEDIFF(subscription_end, CURDATE()) <= ?
-        ORDER BY subscription_end ASC
+        SELECT m.*, 
+               s.end_date AS subscription_end, 
+               p.name AS membership_type, 
+               DATEDIFF(s.end_date, CURDATE()) AS days_left 
+        FROM members m
+        JOIN subscriptions s ON m.id = s.member_id
+        LEFT JOIN packages p ON s.package_id = p.id
+        WHERE s.id = (
+            SELECT MAX(s2.id) 
+            FROM subscriptions s2 
+            WHERE s2.member_id = m.id
+        )
+        AND DATEDIFF(s.end_date, CURDATE()) <= ?
+        ORDER BY s.end_date ASC
     ");
     $stmt->execute([$days]);
     $expiringMembers = $stmt->fetchAll();
@@ -64,7 +71,7 @@ require_once __DIR__ . '/includes/sidebar.php';
                     </div>
                 </div>
                 <div class="card-body p-0">
-                    <table class="table table-striped table-hover m-0">
+                    <table class="table table-striped table-hover m-0 text-center">
                         <thead>
                             <tr>
                                 <th>#</th>
@@ -88,7 +95,7 @@ require_once __DIR__ . '/includes/sidebar.php';
                                         <td><?= $index + 1 ?></td>
                                         <td class="fw-bold"><?= htmlspecialchars($member['full_name']) ?></td>
                                         <td><?= htmlspecialchars($member['phone']) ?></td>
-                                        <td><span class="badge bg-secondary"><?= htmlspecialchars($member['membership_type']) ?></span></td>
+                                        <td><span class="badge bg-secondary"><?= htmlspecialchars($member['membership_type'] ?? 'اشتراك') ?></span></td>
                                         <td><?= htmlspecialchars($member['subscription_end']) ?></td>
                                         <td>
                                             <?php if ($isExpired): ?>
@@ -116,7 +123,7 @@ require_once __DIR__ . '/includes/sidebar.php';
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="<?= $canRenew ? 7 : 6 ?>" class="text-center py-3 text-muted">
+                                    <td colspan="<?= $canRenew ? 7 : 6 ?>" class="text-center py-4 text-muted">
                                         لا توجد اشتراكات منتهية أو توشك على الانتهاء خلال هذه الفترة.
                                     </td>
                                 </tr>

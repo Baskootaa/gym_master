@@ -12,7 +12,6 @@ if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'] ?? '', ['admin',
 }
 
 require_once __DIR__ . '/config/db.php';
-// التأكد من وجود الدالة checkAccess أو تخطيها إذا كانت معرّفة مسبقاً في ملفات أخرى
 if (function_exists('checkAccess')) {
     checkAccess(['admin', 'staff']);
 }
@@ -37,6 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_member'])) {
     $subscription_end   = $_POST['subscription_end'] ?? '';
     $status             = $_POST['status'] ?? 'active';
     $notes              = trim($_POST['notes'] ?? '');
+    $photo_data         = $_POST['photo'] ?? ''; 
 
     if ($full_name === '' || $phone === '' || $subscription_start === '' || $subscription_end === '') {
         $_SESSION['error'] = "من فضلك املأ كل الحقول المطلوبة (الاسم، الهاتف، تاريخ بداية ونهاية الاشتراك).";
@@ -44,16 +44,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_member'])) {
         $_SESSION['error'] = "تاريخ نهاية الاشتراك لازم يكون بعد تاريخ البداية.";
     } else {
         try {
+            $stmt_old = $pdo->prepare("SELECT photo FROM members WHERE id = ?");
+            $stmt_old->execute([$editId]);
+            $old_member = $stmt_old->fetch();
+            $final_photo = $old_member['photo'] ?? null;
+
+            // لو تم طلب حذف الصورة
+            if ($photo_data === 'DELETE') {
+                $final_photo = null;
+            } 
+            // لو تم التقاط صورة جديدة بالكامل (Base64)
+            elseif (!empty($photo_data) && strpos($photo_data, 'data:image') === 0) {
+                $upload_dir = __DIR__ . '/uploads/avatars/';
+                if (!is_dir($upload_dir)) {
+                    mkdir($upload_dir, 0755, true);
+                }
+                list($type, $photo_data) = explode(';', $photo_data);
+                list(, $photo_data) = explode(',', $photo_data);
+                $decoded_image = base64_decode($photo_data);
+                
+                $filename = 'avatar_' . time() . '_' . mt_rand(1000, 9999) . '.jpeg';
+                $file_path = $upload_dir . $filename;
+                
+                if (file_put_contents($file_path, $decoded_image)) {
+                    $final_photo = 'uploads/avatars/' . $filename;
+                }
+            } elseif (!empty($photo_data)) {
+                $final_photo = $photo_data;
+            }
+
             $stmt = $pdo->prepare(
                 "UPDATE members SET full_name = ?, phone = ?, email = ?, gender = ?, birth_date = ?,
                  address = ?, membership_type = ?, subscription_start = ?, subscription_end = ?,
-                 status = ?, notes = ? WHERE id = ?"
+                 status = ?, notes = ?, photo = ? WHERE id = ?"
             );
             $stmt->execute([
                 $full_name, $phone, ($email !== '' ? $email : null), $gender,
                 ($birth_date !== '' ? $birth_date : null), ($address !== '' ? $address : null),
                 $membership_type, $subscription_start, $subscription_end, $status,
-                ($notes !== '' ? $notes : null), $editId,
+                ($notes !== '' ? $notes : null), $final_photo, $editId,
             ]);
             $_SESSION['message'] = "تم تعديل بيانات العضو بنجاح!";
             header("Location: members.php");
@@ -62,13 +91,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_member'])) {
             $_SESSION['error'] = "حدث خطأ أثناء حفظ التعديلات: " . $e->getMessage();
         }
     }
-    
-    // الاحتفاظ بالبيانات المدخلة في حال وجود خطأ لتظهر في النموذج
-    $member = compact(
-        'full_name', 'phone', 'email', 'gender', 'birth_date', 'address',
-        'membership_type', 'subscription_start', 'subscription_end', 'status', 'notes'
-    );
-    $member['id'] = $editId;
 } else {
     try {
         $stmt = $pdo->prepare("SELECT * FROM members WHERE id = ?");
@@ -121,6 +143,61 @@ require_once __DIR__ . '/includes/sidebar.php';
                 </div>
                 <form method="POST" action="./member-edit.php?id=<?= $editId ?>">
                     <div class="card-body">
+                        
+                        <!-- قسم التحكم في صورة العضو والكاميرا -->
+                        <div class="row mb-4 text-center">
+                            <div class="col-12">
+                                <label class="form-label d-block fw-bold">صورة العضو</label>
+                                
+                                <!-- منطقة عرض الصورة الحالية -->
+                                <div class="mb-3">
+                                    <?php 
+                                    $photo_src = !empty($member['photo']) ? $member['photo'] : '';
+                                    if ($photo_src && strpos($photo_src, 'http') !== 0 && strpos($photo_src, '/') !== 0) {
+                                        $photo_src = './' . $photo_src;
+                                    }
+                                    ?>
+                                    <div id="preview-container" style="display: <?= !empty($member['photo']) ? 'block' : 'none' ?>;">
+                                        <img id="photo-preview" src="<?= htmlspecialchars($photo_src) ?>" alt="صورة العضو" class="rounded-circle border" style="width: 100px; height: 100px; object-fit: cover;">
+                                        <div class="mt-2">
+                                            <button type="button" id="delete-photo-btn" class="btn btn-danger btn-sm">
+                                                <i class="bi bi-trash-fill me-1"></i> حذف الصورة
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div id="no-photo-text" class="text-muted" style="display: <?= empty($member['photo']) ? 'block' : 'none' ?>;">
+                                        <div class="bg-secondary text-white rounded-circle d-inline-flex align-items-center justify-content-center mx-auto" style="width: 100px; height: 100px;">
+                                            <i class="bi bi-person-fill fs-1"></i>
+                                        </div>
+                                        <p class="small mt-1">لا توجد صورة</p>
+                                    </div>
+                                </div>
+
+                                <!-- أزرار تشغيل الكاميرا والتقاط الصورة -->
+                                <div class="mb-3">
+                                    <button type="button" id="open-camera-btn" class="btn btn-primary btn-sm me-2">
+                                        <i class="bi bi-camera-video-fill me-1"></i> فتح الكاميرا
+                                    </button>
+                                    <button type="button" id="capture-btn" class="btn btn-success btn-sm" style="display: none;">
+                                        <i class="bi bi-camera-fill me-1"></i> التقاط الصورة
+                                    </button>
+                                    <button type="button" id="close-camera-btn" class="btn btn-secondary btn-sm ms-2" style="display: none;">
+                                        إغلاق الكاميرا
+                                    </button>
+                                </div>
+
+                                <!-- شاشة الفيديو (مخفية افتراضياً حتى يتم الضغط على فتح الكاميرا) -->
+                                <div id="camera-container" class="mb-3 d-flex justify-content-center" style="display: none !important;">
+                                    <div style="width: 200px; height: 150px; background: #000; border-radius: 8px; overflow: hidden; position: relative;" class="border">
+                                        <video id="camera-stream" autoplay playsinline style="width: 100%; height: 100%; object-fit: cover;"></video>
+                                        <canvas id="camera-canvas" style="display:none;"></canvas>
+                                    </div>
+                                </div>
+
+                                <input type="hidden" name="photo" id="photo-input" value="<?= htmlspecialchars($member['photo'] ?? '') ?>">
+                            </div>
+                        </div>
+
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">الاسم بالكامل <span class="text-danger">*</span></label>
@@ -217,4 +294,78 @@ require_once __DIR__ . '/includes/sidebar.php';
         </div>
     </div>
 </main>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const video = document.getElementById('camera-stream');
+    const canvas = document.getElementById('camera-canvas');
+    const openCameraBtn = document.getElementById('open-camera-btn');
+    const closeCameraBtn = document.getElementById('close-camera-btn');
+    const captureBtn = document.getElementById('capture-btn');
+    const cameraContainer = document.getElementById('camera-container');
+    const photoInput = document.getElementById('photo-input');
+    const photoPreview = document.getElementById('photo-preview');
+    const previewContainer = document.getElementById('preview-container');
+    const noPhotoText = document.getElementById('no-photo-text');
+    const deletePhotoBtn = document.getElementById('delete-photo-btn');
+
+    let mediaStream = null;
+
+    // فتح الكاميرا عند الضغط على الزر
+    openCameraBtn.addEventListener('click', function () {
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(function (stream) {
+                mediaStream = stream;
+                video.srcObject = stream;
+                cameraContainer.style.setProperty('display', 'flex', 'important');
+                captureBtn.style.display = 'inline-block';
+                closeCameraBtn.style.display = 'inline-block';
+                openCameraBtn.style.display = 'none';
+            })
+            .catch(function (err) {
+                alert("تعسّر فتح الكاميرا، تأكد من الصلاحيات.");
+                console.error("خطأ في تشغيل الكاميرا: ", err);
+            });
+    });
+
+    // إغلاق الكاميرا
+    function stopCamera() {
+        if (mediaStream) {
+            mediaStream.getTracks().forEach(track => track.stop());
+            mediaStream = null;
+        }
+        cameraContainer.style.setProperty('display', 'none', 'important');
+        captureBtn.style.display = 'none';
+        closeCameraBtn.style.display = 'none';
+        openCameraBtn.style.display = 'inline-block';
+    }
+
+    closeCameraBtn.addEventListener('click', stopCamera);
+
+    // التقاط الصورة
+    captureBtn.addEventListener('click', function () {
+        canvas.width = video.videoWidth || 320;
+        canvas.height = video.videoHeight || 240;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        const dataURL = canvas.toDataURL('image/jpeg');
+        photoInput.value = dataURL;
+        
+        photoPreview.src = dataURL;
+        previewContainer.style.display = 'block';
+        noPhotoText.style.display = 'none';
+
+        stopCamera();
+    });
+
+    // حذف الصورة
+    deletePhotoBtn.addEventListener('click', function () {
+        photoInput.value = 'DELETE';
+        previewContainer.style.display = 'none';
+        noPhotoText.style.display = 'block';
+    });
+});
+</script>
+
 <?php require_once __DIR__ . '/includes/footer.php'; ?>

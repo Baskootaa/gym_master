@@ -28,12 +28,36 @@ $sys_settings = $sys_settings ?: [
 ];
 $currency = $sys_settings['currency'];
 
-// 3. جلب الإحصائيات عبر PDO
+// 3. جلب الإحصائيات عبر PDO (معدلة لتعتمد على أحدث اشتراك لكل عضو)
 try {
     $total_members = $pdo->query("SELECT COUNT(*) FROM members")->fetchColumn();
-    $active_subs   = $pdo->query("SELECT COUNT(*) FROM subscriptions WHERE end_date >= CURDATE()")->fetchColumn();
-    $expired_subs  = $pdo->query("SELECT COUNT(*) FROM subscriptions WHERE end_date < CURDATE()")->fetchColumn();
-    $expiring_soon = $pdo->query("SELECT COUNT(*) FROM subscriptions WHERE end_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 7 DAY)")->fetchColumn();
+    
+    // اشتراكات نشطة (أحدث اشتراك تاريخ انتهائه اليوم أو في المستقبل)
+    $active_subs = $pdo->query("
+        SELECT COUNT(DISTINCT m.id) 
+        FROM members m
+        JOIN subscriptions s ON m.id = s.member_id
+        WHERE s.id = (SELECT MAX(s2.id) FROM subscriptions s2 WHERE s2.member_id = m.id)
+        AND s.end_date >= CURDATE()
+    ")->fetchColumn();
+    
+    // اشتراكات منتهية (أحدث اشتراك تاريخ انتهائه قبل اليوم)
+    $expired_subs = $pdo->query("
+        SELECT COUNT(DISTINCT m.id) 
+        FROM members m
+        JOIN subscriptions s ON m.id = s.member_id
+        WHERE s.id = (SELECT MAX(s2.id) FROM subscriptions s2 WHERE s2.member_id = m.id)
+        AND s.end_date < CURDATE()
+    ")->fetchColumn();
+    
+    // تنتهي هذا الأسبوع (أحدث اشتراك تنتهي صلاحيته بين اليوم وخلال 7 أيام)
+    $expiring_soon = $pdo->query("
+        SELECT COUNT(DISTINCT m.id) 
+        FROM members m
+        JOIN subscriptions s ON m.id = s.member_id
+        WHERE s.id = (SELECT MAX(s2.id) FROM subscriptions s2 WHERE s2.member_id = m.id)
+        AND s.end_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 7 DAY)
+    ")->fetchColumn();
     
     // جلب آخر 4 تسجيلات دخول لليوم الحالي (Today Check-ins)
     $todayStmt = $pdo->prepare("
@@ -277,8 +301,8 @@ try {
             <div class="card-body text-center">
                 <h5>يومياً</h5>
                 <p class="mb-0 fs-5 text-success fw-bold">
-                   من <?php echo date("h:i A", strtotime($sys_settings['open_time'])); ?> 
-                   إلى <?php echo date("h:i A", strtotime($sys_settings['close_time'])); ?>
+                    من <?php echo date("h:i A", strtotime($sys_settings['open_time'])); ?> 
+                    إلى <?php echo date("h:i A", strtotime($sys_settings['close_time'])); ?>
                 </p>
             </div>
           </div>

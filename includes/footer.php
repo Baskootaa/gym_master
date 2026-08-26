@@ -1,5 +1,4 @@
-<!--begin::Footer-->
-      <footer class="app-footer">
+<footer class="app-footer">
         <!--begin::To the end-->
         <div class="float-end d-none d-sm-inline">
           نظام إدارة الجيم | Gym Master
@@ -8,7 +7,7 @@
         <!--begin::Copyright-->
         <strong>
           حقوق الطبع والنشر &copy; <?php echo date('Y'); ?>&nbsp;
-          <a href="/index.php" class="text-decoration-none">Gym Master</a>.
+          <a href="index.php" class="text-decoration-none">Gym Master</a>.
         </strong>
         جميع الحقوق محفوظة.
         <!--end::Copyright-->
@@ -40,7 +39,7 @@
     <!--end::Required Plugin(Bootstrap 5)-->
 
     <!--begin::Required Plugin(AdminLTE)-->
-    <script src="/js/adminlte.js"></script>
+    <script src="js/adminlte.js"></script>
     <!--end::Required Plugin(AdminLTE)-->
 
     <!--begin::OverlayScrollbars Configure-->
@@ -139,6 +138,22 @@
       })();
     </script>
     <!--end::Color Mode Toggle-->
+
+    <!--begin::PWA Service Worker Registration-->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('sw.js')
+            .then((reg) => {
+              console.log('Service Worker registered successfully!', reg.scope);
+            })
+            .catch((err) => {
+              console.log('Service Worker registration failed:', err);
+            });
+        });
+      }
+    </script>
+    <!--end::PWA Service Worker Registration-->
   </body>
   <!--end::Body-->
 </html>

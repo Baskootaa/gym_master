@@ -1,6 +1,6 @@
 <?php
 
-define('BASE_URL', '/NTI_ROUND/gym_master/');
+define('BASE_URL', '/gym_master/');
 
 // بدء الجلسة إذا لم تكن مبدوءة
 if (session_status() === PHP_SESSION_NONE) {
@@ -13,10 +13,10 @@ if (isset($conn) && $conn instanceof mysqli && isset($pdo) && $pdo instanceof PD
 }
 
 // بيانات الاتصال بقاعدة البيانات
-$host     = 'localhost';
-$dbname   = 'gym_master'; // اسم قاعدة البيانات
-$username = 'root';
-$password = '';         // افتراضي XAMPP
+$host = 'localhost';
+$dbname   = 'gym_master'; 
+$username = 'gym_user';
+$password = 'gym12345';         
 
 // ----------------------------------------------------
 // 1. الاتصال باستخدام MySQLi (لتوافق متغير $conn)

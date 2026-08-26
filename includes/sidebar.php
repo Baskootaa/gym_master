@@ -7,7 +7,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
   <!--begin::Sidebar Brand-->
   <div class="sidebar-brand">
     <!--begin::Brand Link-->
-    <a href="index.php" class="brand-link">
+    <a href="<?= BASE_URL ?>index.php" class="brand-link">
       <!--begin::Brand Image-->
       <i class="bi bi-activity text-danger fs-3 me-2"></i>
       <!--end::Brand Image-->
@@ -33,7 +33,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
       >
         <!-- الرئيسية -->
         <li class="nav-item">
-          <a href="index.php" class="nav-link <?= ($currentPage == 'index.php') ? 'active' : '' ?>">
+          <a href="<?= BASE_URL ?>index.php" class="nav-link <?= ($currentPage == 'index.php') ? 'active' : '' ?>">
             <i class="nav-icon bi bi-speedometer"></i>
             <p>لوحة التحكم</p>
           </a>
@@ -42,7 +42,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         <!-- تسجيل الدخول السريع (متاح فقط للـ Admin والـ Staff) -->
         <?php if (hasRole(['admin', 'staff'])): ?>
         <li class="nav-item">
-          <a href="check-in.php" class="nav-link <?= ($currentPage == 'check-in.php') ? 'active' : '' ?>">
+          <a href="<?= BASE_URL ?>check-in.php" class="nav-link <?= ($currentPage == 'check-in.php') ? 'active' : '' ?>">
             <i class="nav-icon bi bi-qr-code-scan text-success"></i>
             <p>تسجيل دخول عضو</p>
           </a>
@@ -63,21 +63,21 @@ $currentPage = basename($_SERVER['PHP_SELF']);
           </a>
           <ul class="nav nav-treeview">
             <li class="nav-item">
-              <a href="members.php" class="nav-link <?= ($currentPage == 'members.php') ? 'active' : '' ?>">
+              <a href="<?= BASE_URL ?>members.php" class="nav-link <?= ($currentPage == 'members.php') ? 'active' : '' ?>">
                 <i class="nav-icon bi bi-circle"></i>
                 <p>كل الأعضاء</p>
               </a>
             </li>
             <?php if (hasRole(['admin', 'staff'])): ?>
             <li class="nav-item">
-              <a href="add-member.php" class="nav-link <?= ($currentPage == 'add-member.php') ? 'active' : '' ?>">
+              <a href="<?= BASE_URL ?>add-member.php" class="nav-link <?= ($currentPage == 'add-member.php') ? 'active' : '' ?>">
                 <i class="nav-icon bi bi-circle"></i>
                 <p>إضافة عضو جديد</p>
               </a>
             </li>
             <?php endif; ?>
             <li class="nav-item">
-              <a href="expiring.php" class="nav-link <?= ($currentPage == 'expiring.php') ? 'active' : '' ?>">
+              <a href="<?= BASE_URL ?>expiring.php" class="nav-link <?= ($currentPage == 'expiring.php') ? 'active' : '' ?>">
                 <i class="nav-icon bi bi-circle text-warning"></i>
                 <p>اشتراكات توشك على الانتهاء</p>
               </a>
@@ -98,13 +98,13 @@ $currentPage = basename($_SERVER['PHP_SELF']);
           </a>
           <ul class="nav nav-treeview">
             <li class="nav-item">
-              <a href="packages.php" class="nav-link <?= ($currentPage == 'packages.php') ? 'active' : '' ?>">
+              <a href="<?= BASE_URL ?>packages.php" class="nav-link <?= ($currentPage == 'packages.php') ? 'active' : '' ?>">
                 <i class="nav-icon bi bi-circle"></i>
                 <p>أنواع الباقات</p>
               </a>
             </li>
             <li class="nav-item">
-              <a href="subscriptions.php" class="nav-link <?= ($currentPage == 'subscriptions.php') ? 'active' : '' ?>">
+              <a href="<?= BASE_URL ?>subscriptions.php" class="nav-link <?= ($currentPage == 'subscriptions.php') ? 'active' : '' ?>">
                 <i class="nav-icon bi bi-circle"></i>
                 <p>سجل الاشتراكات</p>
               </a>
@@ -125,13 +125,13 @@ $currentPage = basename($_SERVER['PHP_SELF']);
           </a>
           <ul class="nav nav-treeview">
             <li class="nav-item">
-              <a href="trainers.php" class="nav-link <?= ($currentPage == 'trainers.php') ? 'active' : '' ?>">
+              <a href="<?= BASE_URL ?>trainers.php" class="nav-link <?= ($currentPage == 'trainers.php') ? 'active' : '' ?>">
                 <i class="nav-icon bi bi-circle"></i>
                 <p>قائمة المدربين</p>
               </a>
             </li>
             <li class="nav-item">
-              <a href="schedules.php" class="nav-link <?= ($currentPage == 'schedules.php') ? 'active' : '' ?>">
+              <a href="<?= BASE_URL ?>schedules.php" class="nav-link <?= ($currentPage == 'schedules.php') ? 'active' : '' ?>">
                 <i class="nav-icon bi bi-circle"></i>
                 <p>جدول الحصص والتمارين</p>
               </a>
@@ -154,19 +154,19 @@ $currentPage = basename($_SERVER['PHP_SELF']);
           </a>
           <ul class="nav nav-treeview">
             <li class="nav-item">
-              <a href="finance.php" class="nav-link <?= ($currentPage == 'finance.php') ? 'active' : '' ?>">
+              <a href="<?= BASE_URL ?>finance.php" class="nav-link <?= ($currentPage == 'finance.php') ? 'active' : '' ?>">
                 <i class="nav-icon bi bi-circle"></i>
                 <p>سجل المدفوعات</p>
               </a>
             </li>
             <li class="nav-item">
-              <a href="add-expense.php" class="nav-link <?= ($currentPage == 'add-expense.php') ? 'active' : '' ?>">
+              <a href="<?= BASE_URL ?>add-expense.php" class="nav-link <?= ($currentPage == 'add-expense.php') ? 'active' : '' ?>">
                 <i class="nav-icon bi bi-circle"></i>
                 <p>تسجيل مصروف جديد</p>
               </a>
             </li>
             <li class="nav-item">
-              <a href="reports.php" class="nav-link <?= ($currentPage == 'reports.php') ? 'active' : '' ?>">
+              <a href="<?= BASE_URL ?>reports.php" class="nav-link <?= ($currentPage == 'reports.php') ? 'active' : '' ?>">
                 <i class="nav-icon bi bi-circle"></i>
                 <p>تقارير الخزينة</p>
               </a>
@@ -187,13 +187,13 @@ $currentPage = basename($_SERVER['PHP_SELF']);
           </a>
           <ul class="nav nav-treeview">
             <li class="nav-item">
-              <a href="products.php" class="nav-link <?= ($currentPage == 'products.php') ? 'active' : '' ?>">
+              <a href="<?= BASE_URL ?>products.php" class="nav-link <?= ($currentPage == 'products.php') ? 'active' : '' ?>">
                 <i class="nav-icon bi bi-circle"></i>
                 <p>المنتجات والخدمات</p>
               </a>
             </li>
             <li class="nav-item">
-              <a href="pos.php" class="nav-link <?= ($currentPage == 'pos.php') ? 'active' : '' ?>">
+              <a href="<?= BASE_URL ?>pos.php" class="nav-link <?= ($currentPage == 'pos.php') ? 'active' : '' ?>">
                 <i class="nav-icon bi bi-circle"></i>
                 <p>نقطة بيع (POS)</p>
               </a>
@@ -205,7 +205,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
 
         <!-- تسجيل الخروج -->
         <li class="nav-item mt-3">
-          <a href="logout.php" class="nav-link text-danger">
+          <a href="<?= BASE_URL ?>logout.php" class="nav-link text-danger">
             <i class="nav-icon bi bi-box-arrow-right"></i>
             <p>تسجيل الخروج</p>
           </a>

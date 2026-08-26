@@ -1,4 +1,7 @@
-<?php
+<?php 
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 session_start();
 
 // لو المستخدم مسجل دخول بالفعل، رجّعه على الداش بورد على طول
@@ -11,15 +14,25 @@ require_once __DIR__ . '/config/db.php';
 
 $errors = [];
 
+// استرجاع الإيميل المحفوظ في الكوكيز لو خانة "تذكرني" كانت مفعلة قبل كده
+$remembered_email = $_COOKIE['remembered_email'] ?? '';
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email    = trim($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
+    $remember = isset($_POST['remember']);
 
     if ($email === '' || $password === '') {
         $errors[] = 'من فضلك املأ كل الحقول';
     } else {
-        // التحقق باستخدام MySQLi المتوافق مع ملف db.php
-        $stmt = $conn->prepare('SELECT id, full_name, email, password, role FROM users WHERE email = ? LIMIT 1');
+        // التحقق باستخدام MySQLi مع إظهار خطأ الاستعلام لو وجد
+        $sql = 'SELECT id, full_name, email, password, role FROM users WHERE email = ? LIMIT 1';
+        $stmt = $conn->prepare($sql);
+        
+        if (!$stmt) {
+            die("خطأ في الاستعلام (SQL Error): " . $conn->error);
+        }
+
         $stmt->bind_param('s', $email);
         $stmt->execute();
         $result = $stmt->get_result();
@@ -35,6 +48,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $role = strtolower(trim($user['role'] ?? 'user'));
             $_SESSION['role']      = $role;
             $_SESSION['user_role'] = $role; // للتوافق إذا كانت مستخدمة في أجزاء أخرى
+
+            // التعامل مع خاصية "تذكرني"
+            if ($remember) {
+                setcookie('remembered_email', $email, time() + (86400 * 30), "/"); // حفظ لمدة 30 يوم
+            } else {
+                setcookie('remembered_email', '', time() - 3600, "/"); // حذف الكوكيز لو مش محددها
+            }
 
             header('Location: index.php');
             exit;
@@ -80,13 +100,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <form method="POST" action="login.php">
           <div class="input-group mb-3">
             <input type="email" name="email" class="form-control" placeholder="الإيميل" required
-                   value="<?= htmlspecialchars($_POST['email'] ?? '') ?>">
+                   value="<?= htmlspecialchars($_POST['email'] ?? $remembered_email) ?>">
             <div class="input-group-text"><i class="bi bi-envelope"></i></div>
           </div>
           <div class="input-group mb-3">
             <input type="password" name="password" class="form-control" placeholder="الباسورد" required>
             <div class="input-group-text"><i class="bi bi-lock-fill"></i></div>
           </div>
+          
+          <!-- صف خيارات تذكرني ونسيت الباسوورد -->
+          <div class="row mb-3">
+            <div class="col-6">
+              <div class="form-check">
+                <input type="checkbox" name="remember" class="form-check-input" id="remember" <?= $remembered_email ? 'checked' : '' ?>>
+                <label class="form-check-label" for="remember">تذكرني</label>
+              </div>
+            </div>
+            <div class="col-6 text-start">
+              <a href="forgot-password.php" class="text-decoration-none small">نسيت الباسوورد؟</a>
+            </div>
+          </div>
+
           <div class="row">
             <div class="col-12">
               <button type="submit" class="btn btn-primary w-100">دخول</button>
