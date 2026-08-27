@@ -31,20 +31,20 @@ $members = [];
 try {
     // استعلام SQL معدل وصحيح لجلب الأعضاء مع أحدث اشتراك لهم
     $sql = "SELECT m.*, 
-                   COALESCE(sub_latest.end_date, m.subscription_end) AS subscription_end,
-                   COALESCE(sub_latest.package_name, m.membership_type) AS membership_type,
-                   CASE 
-                       WHEN sub_latest.end_date IS NOT NULL AND sub_latest.end_date >= CURDATE() THEN 'نشط'
-                       WHEN sub_latest.end_date IS NOT NULL AND sub_latest.end_date < CURDATE() THEN 'منتهي'
-                       ELSE m.status
-                   END AS calculated_status
-            FROM members m
-            LEFT JOIN (
-                SELECT s.member_id, s.end_date, p.name AS package_name
-                FROM subscriptions s
-                LEFT JOIN packages p ON s.package_id = p.id
-                WHERE s.id IN (SELECT MAX(id) FROM subscriptions GROUP BY member_id)
-            ) sub_latest ON m.id = sub_latest.member_id";
+                    COALESCE(sub_latest.end_date, m.subscription_end) AS subscription_end,
+                    COALESCE(sub_latest.package_name, m.membership_type) AS membership_type,
+                    CASE 
+                        WHEN sub_latest.end_date IS NOT NULL AND sub_latest.end_date >= CURDATE() THEN 'نشط'
+                        WHEN sub_latest.end_date IS NOT NULL AND sub_latest.end_date < CURDATE() THEN 'منتهي'
+                        ELSE m.status
+                    END AS calculated_status
+             FROM members m
+             LEFT JOIN (
+                 SELECT s.member_id, s.end_date, p.name AS package_name
+                 FROM subscriptions s
+                 LEFT JOIN packages p ON s.package_id = p.id
+                 WHERE s.id IN (SELECT MAX(id) FROM subscriptions GROUP BY member_id)
+             ) sub_latest ON m.id = sub_latest.member_id";
 
     if ($search !== '') {
         $sql .= " WHERE m.full_name LIKE ? OR m.phone LIKE ?";
