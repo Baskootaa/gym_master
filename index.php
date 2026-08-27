@@ -18,7 +18,7 @@ try {
 
 // القيم الافتراضية للإعدادات في حال عدم وجود الجدول
 $sys_settings = $sys_settings ?: [
-    'gym_name'        => 'Gym Master',
+    'gym_name'         => 'Gym Master',
     'phone'           => '01000000000',
     'currency'        => 'ج.م', 
     'open_time'       => '08:00:00', 
@@ -32,7 +32,7 @@ $currency = $sys_settings['currency'];
 try {
     $total_members = $pdo->query("SELECT COUNT(*) FROM members")->fetchColumn();
     
-    // اشتراكات نشطة (أحدث اشتراك تاريخ انتهائه اليوم أو في المستقبل)
+    // اشتراكات نشطة (تضم النشط تماماً والذي سينتهي قريباً، أي أن تاريخ انتهائه اليوم أو في المستقبل)
     $active_subs = $pdo->query("
         SELECT COUNT(DISTINCT m.id) 
         FROM members m
@@ -50,7 +50,7 @@ try {
         AND s.end_date < CURDATE()
     ")->fetchColumn();
     
-    // تنتهي هذا الأسبوع (أحدث اشتراك تنتهي صلاحيته بين اليوم وخلال 7 أيام)
+    // تنتهي هذا الأسبوع (أحدث اشتراك تنتهي صلاحيته بين اليوم وخلال 7 أيام) - المربع الأصفر سيبقى يعمل كالعادة
     $expiring_soon = $pdo->query("
         SELECT COUNT(DISTINCT m.id) 
         FROM members m

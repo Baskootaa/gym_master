@@ -26,7 +26,7 @@ $search = trim($_GET['search'] ?? '');
 $members = [];
 
 try {
-    // تعديل استعلام جلب أحدث اشتراك للعضو بناءً على أحدث تاريخ أو أكبر ID
+    // تعديل الاستعلام بحيث يجيب أحدث اشتراك بناءً على أكبر تاريخ نهاية أو أكبر ID للاشتراك الأحدث حقيقةً
     $sql = "SELECT m.*, 
                     COALESCE(sub_latest.end_date, m.subscription_end) AS subscription_end,
                     COALESCE(sub_latest.package_name, m.membership_type) AS membership_type,
