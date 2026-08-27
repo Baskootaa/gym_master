@@ -12,11 +12,11 @@ if (isset($conn) && $conn instanceof mysqli && isset($pdo) && $pdo instanceof PD
     return;
 }
 
-// بيانات الاتصال بقاعدة البيانات
-$host = 'localhost';
-$dbname   = 'gym_master'; 
-$username = 'gym_user';
-$password = 'gym12345';         
+// بيانات الاتصال بقاعدة البيانات (تم التحديث لدعم بيئة السحاب مثل Render أو الاستضافات الخارجية)
+$host = getenv('DB_HOST') ?: 'localhost';
+$dbname   = getenv('DB_DATABASE') ?: 'gym_master'; 
+$username = getenv('DB_USERNAME') ?: 'gym_user';
+$password = getenv('DB_PASSWORD') ?: 'gym12345';        
 
 // ----------------------------------------------------
 // 1. الاتصال باستخدام MySQLi (لتوافق متغير $conn)
