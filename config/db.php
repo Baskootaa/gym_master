@@ -1,6 +1,15 @@
 <?php
 
-define('BASE_URL', '/gym_master/');
+// تحديد BASE_URL ديناميكياً لتناسب البيئة المحلية (XAMPP) أو السحابية (Render)
+if ($_SERVER['HTTP_HOST'] == 'localhost' || strpos($_SERVER['HTTP_HOST'], '127.0.0.1') !== false) {
+    // استخرج المسار الفرعي المحلي تلقائياً بناءً على مكان وجود الملف
+    $scriptName = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME']));
+    // إذا كان المشروع داخل مجلد فرعي محلي
+    define('BASE_URL', '/gym_master/');
+} else {
+    // على السيرفر السحابي (Render) الملفات في الـ Root مباشرة
+    define('BASE_URL', '/');
+}
 
 // بدء الجلسة إذا لم تكن مبدوءة
 if (session_status() === PHP_SESSION_NONE) {
