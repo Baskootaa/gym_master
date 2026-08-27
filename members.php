@@ -29,7 +29,7 @@ $search = trim($_GET['search'] ?? '');
 $members = [];
 
 try {
-    // استعلام SQL معدل وصحيح لجلب الأعضاء مع أحدث اشتراك لهم
+    // استعلام SQL محسن يضمن جلب الاشتراك الأحدث بناءً على تاريخ البداية أو رقم الـ ID الأكبر
     $sql = "SELECT m.*, 
                     COALESCE(sub_latest.end_date, m.subscription_end) AS subscription_end,
                     COALESCE(sub_latest.package_name, m.membership_type) AS membership_type,
@@ -43,7 +43,11 @@ try {
                  SELECT s.member_id, s.end_date, p.name AS package_name
                  FROM subscriptions s
                  LEFT JOIN packages p ON s.package_id = p.id
-                 WHERE s.id IN (SELECT MAX(id) FROM subscriptions GROUP BY member_id)
+                 WHERE s.id IN (
+                     SELECT MAX(sub_sub.id) 
+                     FROM subscriptions sub_sub 
+                     GROUP BY sub_sub.member_id
+                 )
              ) sub_latest ON m.id = sub_latest.member_id";
 
     if ($search !== '') {
