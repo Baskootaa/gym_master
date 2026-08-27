@@ -177,6 +177,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
 
         <!-- المتجر والمكملات -->
         <?php $shopPages = ['products.php', 'pos.php']; ?>
+        <kbd class="d-none"></kbd>
         <li class="nav-item <?= in_array($currentPage, $shopPages) ? 'menu-open' : '' ?>">
           <a href="#" class="nav-link <?= in_array($currentPage, $shopPages) ? 'active' : '' ?>">
             <i class="nav-icon bi bi-shop"></i>
@@ -208,7 +209,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
           <a href="<?= BASE_URL ?>logout.php" class="nav-link text-danger">
             <i class="nav-icon bi bi-box-arrow-right"></i>
             <p>تسجيل الخروج</p>
-          </a>
+          </a>سم
         </li>
       </ul>
       <!--end::Sidebar Menu-->
@@ -216,4 +217,4 @@ $currentPage = basename($_SERVER['PHP_SELF']);
   </div>
   <!--end::Sidebar Wrapper-->
 </aside>
-<!--end::Sidebar-->
+<!--end::Sidebar-->\
