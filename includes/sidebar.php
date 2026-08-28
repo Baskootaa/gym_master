@@ -209,7 +209,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
           <a href="<?= BASE_URL ?>logout.php" class="nav-link text-danger">
             <i class="nav-icon bi bi-box-arrow-right"></i>
             <p>تسجيل الخروج</p>
-          </a>سم
+          </a>
         </li>
       </ul>
       <!--end::Sidebar Menu-->

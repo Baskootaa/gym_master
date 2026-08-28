@@ -18,7 +18,7 @@ try {
 
 // القيم الافتراضية للإعدادات في حال عدم وجود الجدول
 $sys_settings = $sys_settings ?: [
-    'gym_name'         => 'Gym Master',
+    'gym_name'        => 'Gym Master',
     'phone'           => '01000000000',
     'currency'        => 'ج.م', 
     'open_time'       => '08:00:00', 
@@ -28,16 +28,22 @@ $sys_settings = $sys_settings ?: [
 ];
 $currency = $sys_settings['currency'];
 
-// 3. جلب الإحصائيات عبر PDO (معدلة لتعتمد على أحدث اشتراك لكل عضو)
+// 3. جلب الإحصائيات عبر PDO (معدلة لتعتمد على أحدث اشتراك لكل عضو بناءً على أحدث تاريخ وأكبر ID)
 try {
     $total_members = $pdo->query("SELECT COUNT(*) FROM members")->fetchColumn();
     
-    // اشتراكات نشطة (تضم النشط تماماً والذي سينتهي قريباً، أي أن تاريخ انتهائه اليوم أو في المستقبل)
+    // اشتراكات نشطة (أحدث اشتراك تاريخ انتهائه اليوم أو في المستقبل)
     $active_subs = $pdo->query("
         SELECT COUNT(DISTINCT m.id) 
         FROM members m
         JOIN subscriptions s ON m.id = s.member_id
-        WHERE s.id = (SELECT MAX(s2.id) FROM subscriptions s2 WHERE s2.member_id = m.id)
+        WHERE s.id IN (
+            SELECT s2.id 
+            FROM subscriptions s2 
+            WHERE s2.member_id = m.member_id 
+            ORDER BY s2.start_date DESC, s2.id DESC 
+            LIMIT 1
+        )
         AND s.end_date >= CURDATE()
     ")->fetchColumn();
     
@@ -46,16 +52,28 @@ try {
         SELECT COUNT(DISTINCT m.id) 
         FROM members m
         JOIN subscriptions s ON m.id = s.member_id
-        WHERE s.id = (SELECT MAX(s2.id) FROM subscriptions s2 WHERE s2.member_id = m.id)
+        WHERE s.id IN (
+            SELECT s2.id 
+            FROM subscriptions s2 
+            WHERE s2.member_id = m.member_id 
+            ORDER BY s2.start_date DESC, s2.id DESC 
+            LIMIT 1
+        )
         AND s.end_date < CURDATE()
     ")->fetchColumn();
     
-    // تنتهي هذا الأسبوع (أحدث اشتراك تنتهي صلاحيته بين اليوم وخلال 7 أيام) - المربع الأصفر سيبقى يعمل كالعادة
+    // تنتهي هذا الأسبوع (أحدث اشتراك تنتهي صلاحيته بين اليوم وخلال 7 أيام)
     $expiring_soon = $pdo->query("
         SELECT COUNT(DISTINCT m.id) 
         FROM members m
         JOIN subscriptions s ON m.id = s.member_id
-        WHERE s.id = (SELECT MAX(s2.id) FROM subscriptions s2 WHERE s2.member_id = m.id)
+        WHERE s.id IN (
+            SELECT s2.id 
+            FROM subscriptions s2 
+            WHERE s2.member_id = m.member_id 
+            ORDER BY s2.start_date DESC, s2.id DESC 
+            LIMIT 1
+        )
         AND s.end_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 7 DAY)
     ")->fetchColumn();
     
