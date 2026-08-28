@@ -116,7 +116,7 @@ require_once __DIR__ . '/includes/sidebar.php';
                                         </td>
                                         <?php if ($canRenew): ?>
                                             <td>
-                                                <a href="./member-edit.php?id=<?= $member['id'] ?>" class="btn btn-sm btn-primary">
+                                                <a href="./create-invoice.php?member_id=<?= (int)$member['id'] ?>" class="btn btn-sm btn-primary">
                                                     <i class="bi bi-arrow-repeat me-1"></i> تجديد
                                                 </a>
                                             </td>

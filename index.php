@@ -28,53 +28,37 @@ $sys_settings = $sys_settings ?: [
 ];
 $currency = $sys_settings['currency'];
 
-// 3. جلب الإحصائيات عبر PDO (معدلة لتعتمد على أحدث اشتراك لكل عضو بطريقة صحيحة)
+// 3. جلب الإحصائيات عبر PDO (معدلة لتعتمد على أحدث اشتراك لكل عضو بناءً على أكبر ID بطريقة سليمة)
 try {
     $total_members = $pdo->query("SELECT COUNT(*) FROM members")->fetchColumn();
     
+    // استعلام فرعي لجلب أحدث اشتراك لكل عضو بدقة
+    $latestSubQuery = "
+        SELECT s.* 
+        FROM subscriptions s
+        INNER JOIN (
+            SELECT member_id, MAX(id) AS max_id 
+            FROM subscriptions 
+            GROUP BY member_id
+        ) latest ON s.member_id = latest.member_id AND s.id = latest.max_id
+    ";
+
     // اشتراكات نشطة (أحدث اشتراك تاريخ انتهائه اليوم أو في المستقبل)
     $active_subs = $pdo->query("
-        SELECT COUNT(DISTINCT m.id) 
-        FROM members m
-        JOIN subscriptions s ON m.id = s.member_id
-        WHERE s.id IN (
-            SELECT s2.id 
-            FROM subscriptions s2 
-            WHERE s2.member_id = m.id 
-            ORDER BY s2.start_date DESC, s2.id DESC 
-            LIMIT 1
-        )
-        AND s.end_date >= CURDATE()
+        SELECT COUNT(*) FROM ({$latestSubQuery}) AS sub 
+        WHERE sub.end_date >= CURDATE()
     ")->fetchColumn();
     
     // اشتراكات منتهية (أحدث اشتراك تاريخ انتهائه قبل اليوم)
     $expired_subs = $pdo->query("
-        SELECT COUNT(DISTINCT m.id) 
-        FROM members m
-        JOIN subscriptions s ON m.id = s.member_id
-        WHERE s.id IN (
-            SELECT s2.id 
-            FROM subscriptions s2 
-            WHERE s2.member_id = m.id 
-            ORDER BY s2.start_date DESC, s2.id DESC 
-            LIMIT 1
-        )
-        AND s.end_date < CURDATE()
+        SELECT COUNT(*) FROM ({$latestSubQuery}) AS sub 
+        WHERE sub.end_date < CURDATE()
     ")->fetchColumn();
     
     // تنتهي هذا الأسبوع (أحدث اشتراك تنتهي صلاحيته بين اليوم وخلال 7 أيام)
     $expiring_soon = $pdo->query("
-        SELECT COUNT(DISTINCT m.id) 
-        FROM members m
-        JOIN subscriptions s ON m.id = s.member_id
-        WHERE s.id IN (
-            SELECT s2.id 
-            FROM subscriptions s2 
-            WHERE s2.member_id = m.id 
-            ORDER BY s2.start_date DESC, s2.id DESC 
-            LIMIT 1
-        )
-        AND s.end_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 7 DAY)
+        SELECT COUNT(*) FROM ({$latestSubQuery}) AS sub 
+        WHERE sub.end_date >= CURDATE() AND DATEDIFF(sub.end_date, CURDATE()) <= 7
     ")->fetchColumn();
     
     // جلب آخر 4 تسجيلات دخول لليوم الحالي (Today Check-ins)
@@ -83,7 +67,7 @@ try {
                (SELECT p.name FROM subscriptions s
                 JOIN packages p ON p.id = s.package_id
                 WHERE s.member_id = m.id
-                ORDER BY s.end_date DESC LIMIT 1) AS package_name
+                ORDER BY s.id DESC LIMIT 1) AS package_name
         FROM check_ins c
         JOIN members m ON m.id = c.member_id
         WHERE DATE(c.check_in_time) = CURDATE()
