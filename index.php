@@ -18,17 +18,17 @@ try {
 
 // القيم الافتراضية للإعدادات في حال عدم وجود الجدول
 $sys_settings = $sys_settings ?: [
-    'gym_name'        => 'Gym Master',
-    'phone'           => '01000000000',
-    'currency'        => 'ج.م', 
-    'open_time'       => '08:00:00', 
-    'close_time'      => '00:00:00', 
-    'tax_rate'        => '14.00',
+    'gym_name'          => 'Gym Master',
+    'phone'             => '01000000000',
+    'currency'          => 'ج.م', 
+    'open_time'         => '08:00:00', 
+    'close_time'        => '00:00:00', 
+    'tax_rate'          => '14.00',
     'invoice_message' => 'نتمنى لكم تمريناً سعيداً'
 ];
 $currency = $sys_settings['currency'];
 
-// 3. جلب الإحصائيات عبر PDO (معدلة لتعتمد على أحدث اشتراك لكل عضو بناءً على أحدث تاريخ وأكبر ID)
+// 3. جلب الإحصائيات عبر PDO (معدلة لتعتمد على أحدث اشتراك لكل عضو بطريقة صحيحة)
 try {
     $total_members = $pdo->query("SELECT COUNT(*) FROM members")->fetchColumn();
     
@@ -40,7 +40,7 @@ try {
         WHERE s.id IN (
             SELECT s2.id 
             FROM subscriptions s2 
-            WHERE s2.member_id = m.member_id 
+            WHERE s2.member_id = m.id 
             ORDER BY s2.start_date DESC, s2.id DESC 
             LIMIT 1
         )
@@ -55,7 +55,7 @@ try {
         WHERE s.id IN (
             SELECT s2.id 
             FROM subscriptions s2 
-            WHERE s2.member_id = m.member_id 
+            WHERE s2.member_id = m.id 
             ORDER BY s2.start_date DESC, s2.id DESC 
             LIMIT 1
         )
@@ -70,7 +70,7 @@ try {
         WHERE s.id IN (
             SELECT s2.id 
             FROM subscriptions s2 
-            WHERE s2.member_id = m.member_id 
+            WHERE s2.member_id = m.id 
             ORDER BY s2.start_date DESC, s2.id DESC 
             LIMIT 1
         )

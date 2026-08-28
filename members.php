@@ -7,15 +7,12 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// التأكد من تضمين ملف الاتصال بقاعدة البيانات ووظائف الصلاحيات
 require_once __DIR__ . '/config/db.php';
 
-// التحقق من صلاحيات الوصول للمستخدم
 if (function_exists('checkAccess')) {
     checkAccess(['admin', 'staff', 'user']);
 }
 
-// التحقق مما إذا كان المستخدم أدمن أو موظف
 $isStaffOrAdmin = isset($_SESSION['user_id']) && in_array($_SESSION['role'] ?? '', ['admin', 'staff'], true);
 
 $message = $_SESSION['message'] ?? '';
@@ -29,7 +26,7 @@ $search = trim($_GET['search'] ?? '');
 $members = [];
 
 try {
-    // استعلام SQL معدل لتجنب قيود الـ LIMIT داخل الـ Subquery
+    // استعلام دقيق يربط العضو بآخر اشتراك تم تسجيله له حصرياً من جدول subscriptions
     $sql = "SELECT m.*, 
                    COALESCE(sub_latest.end_date, m.subscription_end) AS subscription_end,
                    COALESCE(sub_latest.package_name, m.membership_type) AS membership_type,
@@ -44,10 +41,10 @@ try {
                 FROM subscriptions s
                 LEFT JOIN packages p ON s.package_id = p.id
                 INNER JOIN (
-                    SELECT member_id, MAX(start_date) AS max_start, MAX(id) AS max_id
+                    SELECT member_id, MAX(id) AS max_id
                     FROM subscriptions
                     GROUP BY member_id
-                ) latest ON s.member_id = latest.member_id AND s.start_date = latest.max_start AND s.id = latest.max_id
+                ) latest ON s.id = latest.max_id
             ) sub_latest ON m.id = sub_latest.member_id";
 
     if ($search !== '') {

@@ -1,5 +1,4 @@
 <?php
-
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -14,19 +13,22 @@ $days = isset($_GET['days']) && ctype_digit($_GET['days']) ? (int)$_GET['days'] 
 try {
     $stmt = $pdo->prepare("
         SELECT m.*, 
-               s.end_date AS subscription_end, 
-               p.name AS membership_type, 
-               DATEDIFF(s.end_date, CURDATE()) AS days_left 
+               sub_latest.end_date AS subscription_end, 
+               sub_latest.membership_type, 
+               DATEDIFF(sub_latest.end_date, CURDATE()) AS days_left 
         FROM members m
-        JOIN subscriptions s ON m.id = s.member_id
-        LEFT JOIN packages p ON s.package_id = p.id
-        WHERE s.id = (
-            SELECT MAX(s2.id) 
-            FROM subscriptions s2 
-            WHERE s2.member_id = m.id
-        )
-        AND DATEDIFF(s.end_date, CURDATE()) <= ?
-        ORDER BY s.end_date ASC
+        INNER JOIN (
+            SELECT s.member_id, s.end_date, p.name AS membership_type, s.id
+            FROM subscriptions s
+            LEFT JOIN packages p ON s.package_id = p.id
+            INNER JOIN (
+                SELECT member_id, MAX(id) AS max_id
+                FROM subscriptions
+                GROUP BY member_id
+            ) latest ON s.id = latest.max_id
+        ) sub_latest ON m.id = sub_latest.member_id
+        WHERE DATEDIFF(sub_latest.end_date, CURDATE()) <= ?
+        ORDER BY sub_latest.end_date ASC
     ");
     $stmt->execute([$days]);
     $expiringMembers = $stmt->fetchAll();
