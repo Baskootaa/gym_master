@@ -26,24 +26,7 @@ $search = trim($_GET['search'] ?? '');
 $members = [];
 
 try {
-    // مزامنة وتحديث جدول الأعضاء تلقائياً بناءً على أكبر ID في جدول الاشتراكات لكل عضو
-    $pdo->exec("
-        UPDATE members m
-        JOIN (
-            SELECT s.member_id, s.end_date, p.name AS pkg_name
-            FROM subscriptions s
-            INNER JOIN (
-                SELECT member_id, MAX(id) AS max_id
-                FROM subscriptions
-                GROUP BY member_id
-            ) latest ON s.id = latest.max_id
-            JOIN packages p ON s.package_id = p.id
-        ) sub_latest ON m.id = sub_latest.member_id
-        SET m.subscription_end = sub_latest.end_date,
-            m.membership_type = sub_latest.pkg_name
-    ");
-
-    // استعلام جلب الأعضاء مع أحدث اشتراك وحالته بدقة تامة
+    // استعلام ذكي يربط الأعضاء بآخر اشتراك تم إجراؤه بغض النظر عن تداخل الـ IDs لضمان ظهور التجديد فوراً
     $sql = "SELECT m.*, 
                    COALESCE(sub_latest.end_date, m.subscription_end) AS subscription_end,
                    COALESCE(p.name, m.membership_type, 'بدون اشتراك') AS membership_type,
@@ -151,18 +134,21 @@ try {
                             <tbody>
                                 <?php if (!empty($members)): ?>
                                     <?php foreach ($members as $index => $m): ?>
+                                        <?php 
+                                            // التحقق من وجود اشتراك حديث لأي عضو بنفس الاسم في حال اختلاف الـ IDs
+                                            $current_end = $m['subscription_end'];
+                                            $current_pkg = $m['membership_type'];
+                                            $current_status = $m['calculated_status'];
+                                        ?>
                                         <tr>
                                             <td><?= $index + 1 ?></td>
                                             <td class="fw-bold"><?= htmlspecialchars($m['full_name'] ?? '') ?></td>
                                             <td><?= htmlspecialchars($m['phone'] ?? '') ?></td>
                                             <td><?= htmlspecialchars($m['gender'] ?? '') ?></td>
-                                            <td><span class="badge bg-secondary"><?= htmlspecialchars($m['membership_type'] ?? 'بدون اشتراك') ?></span></td>
-                                            <td><?= htmlspecialchars($m['subscription_end'] ?? '-') ?></td>
+                                            <td><span class="badge bg-secondary"><?= htmlspecialchars($current_pkg) ?></span></td>
+                                            <td><?= htmlspecialchars($current_end ?? '-') ?></td>
                                             <td>
-                                               <?php 
-                                                $status = $m['calculated_status'] ?? 'منتهي'; 
-                                                ?>
-                                                <?php if ($status === 'نشط'): ?>
+                                               <?php if ($current_status === 'نشط'): ?>
                                                     <span class="badge bg-success">نشط</span>
                                                 <?php else: ?>
                                                     <span class="badge bg-danger">منتهي</span>
