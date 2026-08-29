@@ -26,13 +26,14 @@ $search = trim($_GET['search'] ?? '');
 $members = [];
 
 try {
-    // استعلام SQL صحيح وسليم نحوياً لجلب بيانات العضو مع أحدث اشتراك وباقته وحالته الحقيقية
+    // استعلام دقيق يربط العضو بآخر اشتراك تم تسجيله له حصرياً عبر أكبر ID في جدول subscriptions لتحديث البيانات فوراً
     $sql = "SELECT m.*, 
-                   sub_latest.end_date AS subscription_end,
-                   p.name AS membership_type,
+                   COALESCE(sub_latest.end_date, m.subscription_end) AS subscription_end,
+                   COALESCE(p.name, m.membership_type, 'بدون اشتراك') AS membership_type,
                    CASE 
                        WHEN sub_latest.end_date IS NOT NULL AND sub_latest.end_date >= CURDATE() THEN 'نشط'
                        WHEN sub_latest.end_date IS NOT NULL AND sub_latest.end_date < CURDATE() THEN 'منتهي'
+                       WHEN m.subscription_end IS NOT NULL AND m.subscription_end >= CURDATE() THEN 'نشط'
                        ELSE 'منتهي'
                    END AS calculated_status
             FROM members m
