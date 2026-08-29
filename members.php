@@ -26,7 +26,24 @@ $search = trim($_GET['search'] ?? '');
 $members = [];
 
 try {
-    // استعلام دقيق يربط العضو بآخر اشتراك تم تسجيله له حصرياً عبر أكبر ID في جدول subscriptions لتحديث البيانات فوراً
+    // 1. تحديث جدول الأعضاء تلقائياً بناءً على أحدث اشتراك لضمان تزامن البيانات فوراً
+    $pdo->exec("
+        UPDATE members m
+        JOIN (
+            SELECT s.member_id, s.end_date, p.name AS pkg_name
+            FROM subscriptions s
+            INNER JOIN (
+                SELECT member_id, MAX(id) AS max_id
+                FROM subscriptions
+                GROUP BY member_id
+            ) latest ON s.id = latest.max_id
+            JOIN packages p ON s.package_id = p.id
+        ) sub_latest ON m.id = sub_latest.member_id
+        SET m.subscription_end = sub_latest.end_date,
+            m.membership_type = sub_latest.pkg_name
+    ");
+
+    // 2. استعلام جلب الأعضاء مع حساب الحالة الفورية بدقة
     $sql = "SELECT m.*, 
                    COALESCE(sub_latest.end_date, m.subscription_end) AS subscription_end,
                    COALESCE(p.name, m.membership_type, 'بدون اشتراك') AS membership_type,
