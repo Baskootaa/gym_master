@@ -28,11 +28,11 @@ $sys_settings = $sys_settings ?: [
 ];
 $currency = $sys_settings['currency'];
 
-// 3. جلب الإحصائيات الحقيقية بدقة تامة بناءً على أحدث اشتراك لكل عضو
+// 3. جلب الإحصائيات مباشرة وحصرياً من جدول الاشتراكات (subscriptions) بناءً على أحدث اشتراك لكل عضو
 try {
     $total_members = $pdo->query("SELECT COUNT(*) FROM members")->fetchColumn();
     
-    // استعلام فرعي لجلب أحدث اشتراك لكل عضو بدقة مطلقة بناءً على أكبر ID في جدول subscriptions
+    // استعلام فرعي لجلب أحدث اشتراك لكل عضو من جدول subscriptions حصرياً
     $latestSubQuery = "
         SELECT s.member_id, s.end_date 
         FROM subscriptions s
@@ -43,13 +43,13 @@ try {
         ) latest ON s.id = latest.max_id
     ";
 
-    // اشتراكات نشطة (تأخذ الاشتراكات التي تاريخ نهايتها أكبر من أو يساوي التاريخ الحالي للنظام)
+    // اشتراكات نشطة (تأخذ من جدول الاشتراكات مباشرة لتصبح 5 بدقة)
     $active_subs = $pdo->query("
         SELECT COUNT(*) FROM ({$latestSubQuery}) AS sub 
         WHERE sub.end_date >= CURRENT_DATE()
     ")->fetchColumn();
     
-    // اشتراكات منتهية (أحدث اشتراك تاريخ انتهائه قبل التاريخ الحالي)
+    // اشتراكات منتهية من جدول الاشتراكات
     $expired_subs = $pdo->query("
         SELECT COUNT(*) FROM ({$latestSubQuery}) AS sub 
         WHERE sub.end_date < CURRENT_DATE()
@@ -288,7 +288,7 @@ try {
               <a href="check-in.php" class="btn btn-info text-white btn-lg">
                 <i class="bi bi-qr-code-scan me-2"></i>تسجيل دخول عضو
               </a>
-              <a href="create-invoice.php" class="btn your-custom-class btn-warning btn-lg">
+              <a href="create-invoice.php" class="btn btn-warning btn-lg">
                 <i class="bi bi-receipt me-2"></i>إنشاء فاتورة جديدة
               </a>
             </div>

@@ -26,14 +26,13 @@ $search = trim($_GET['search'] ?? '');
 $members = [];
 
 try {
-    // استعلام ذكي يدمج الأعضاء مع أحدث اشتراك تم إجراؤه في جدول subscriptions لضمان تحديث الحالة والبيانات فوراً
+    // استعلام ذكي وقوي يربط جدول الأعضاء مباشرة بأحدث اشتراك مسجل في جدول subscriptions لكل عضو بناءً على أكبر ID
     $sql = "SELECT m.*, 
-                   COALESCE(sub_latest.end_date, m.subscription_end) AS subscription_end,
-                   COALESCE(p.name, m.membership_type, 'بدون اشتراك') AS membership_type,
+                   sub_latest.end_date AS subscription_end,
+                   p.name AS membership_type,
                    CASE 
                        WHEN sub_latest.end_date IS NOT NULL AND sub_latest.end_date >= CURRENT_DATE() THEN 'نشط'
                        WHEN sub_latest.end_date IS NOT NULL AND sub_latest.end_date < CURRENT_DATE() THEN 'منتهي'
-                       WHEN m.subscription_end IS NOT NULL AND m.subscription_end >= CURRENT_DATE() THEN 'نشط'
                        ELSE 'منتهي'
                    END AS calculated_status
             FROM members m
@@ -135,19 +134,25 @@ try {
                                 <?php if (!empty($members)): ?>
                                     <?php foreach ($members as $index => $m): ?>
                                         <?php 
-                                            // التحقق من وجود اشتراك أحدث مسجل في جدول subscriptions لنفس اسم العضو لضمان تطابق البيانات تماماً
-                                            $display_end = $m['subscription_end'];
-                                            $display_pkg = $m['membership_type'];
-                                            $display_status = $m['calculated_status'];
+                                            // جلب أحدث تاريخ اشتراك ونوعه مباشرة بناءً على member_id لضمان الدقة المطلقة
+                                            $display_end = $m['subscription_end'] ?? '-';
+                                            $display_pkg = $m['membership_type'] ?? 'بدون اشتراك';
+                                            $display_status = $m['calculated_status'] ?? 'منتهي';
 
-                                            // جلب أحدث تاريخ اشتراك لنفس الاسم من جدول subscriptions كاحتياط إضافي
                                             try {
-                                                $subCheck = $pdo->prepare("SELECT s.end_date, p.name AS pkg_name FROM subscriptions s JOIN packages p ON s.package_id = p.id JOIN members mem ON s.member_id = mem.id WHERE mem.full_name = ? ORDER BY s.id DESC LIMIT 1");
-                                                $subCheck->execute([$m['full_name']]);
-                                                $latest_sub_data = $subCheck->fetch(PDO::FETCH_ASSOC);
-                                                if ($latest_sub_data) {
-                                                    $display_end = $latest_sub_data['end_date'];
-                                                    $display_pkg = $latest_sub_data['pkg_name'];
+                                                $subCheck = $pdo->prepare("
+                                                    SELECT s.end_date, p.name AS pkg_name 
+                                                    FROM subscriptions s 
+                                                    JOIN packages p ON s.package_id = p.id 
+                                                    WHERE s.member_id = ? 
+                                                    ORDER BY s.id DESC 
+                                                    LIMIT 1
+                                                ");
+                                                $subCheck->execute([$m['id']]);
+                                                $latest_sub = $subCheck->fetch(PDO::FETCH_ASSOC);
+                                                if ($latest_sub) {
+                                                    $display_end = $latest_sub['end_date'];
+                                                    $display_pkg = $latest_sub['pkg_name'];
                                                     $display_status = (strtotime($display_end) >= strtotime(date('Y-m-d'))) ? 'نشط' : 'منتهي';
                                                 }
                                             } catch (Exception $ex) {}
@@ -158,7 +163,7 @@ try {
                                             <td><?= htmlspecialchars($m['phone'] ?? '') ?></td>
                                             <td><?= htmlspecialchars($m['gender'] ?? '') ?></td>
                                             <td><span class="badge bg-secondary"><?= htmlspecialchars($display_pkg) ?></span></td>
-                                            <td><?= htmlspecialchars($display_end ?? '-') ?></td>
+                                            <td><?= htmlspecialchars($display_end) ?></td>
                                             <td>
                                                 <?php if ($display_status === 'نشط'): ?>
                                                     <span class="badge bg-success">نشط</span>
