@@ -32,7 +32,7 @@ $currency = $sys_settings['currency'];
 try {
     $total_members = $pdo->query("SELECT COUNT(*) FROM members")->fetchColumn();
     
-    // استعلام فرعي لجلب أحدث اشتراك لكل عضو بدقة مطلقة بناءً على أكبر ID
+    // استعلام فرعي لجلب أحدث اشتراك لكل عضو بدقة مطلقة بناءً على أكبر ID في جدول subscriptions
     $latestSubQuery = "
         SELECT s.member_id, s.end_date 
         FROM subscriptions s
@@ -43,22 +43,22 @@ try {
         ) latest ON s.id = latest.max_id
     ";
 
-    // اشتراكات نشطة (تضم كل من لديه أحدث اشتراك تاريخ نهايته اليوم أو في المستقبل لتكون الحصيلة 5)
+    // اشتراكات نشطة (تأخذ الاشتراكات التي تاريخ نهايتها أكبر من أو يساوي التاريخ الحالي للنظام)
     $active_subs = $pdo->query("
         SELECT COUNT(*) FROM ({$latestSubQuery}) AS sub 
-        WHERE sub.end_date >= CURDATE()
+        WHERE sub.end_date >= CURRENT_DATE()
     ")->fetchColumn();
     
-    // اشتراكات منتهية (أحدث اشتراك تاريخ انتهائه قبل اليوم)
+    // اشتراكات منتهية (أحدث اشتراك تاريخ انتهائه قبل التاريخ الحالي)
     $expired_subs = $pdo->query("
         SELECT COUNT(*) FROM ({$latestSubQuery}) AS sub 
-        WHERE sub.end_date < CURDATE()
+        WHERE sub.end_date < CURRENT_DATE()
     ")->fetchColumn();
     
-    // تنتهي هذا الأسبوع (أحدث اشتراك تنتهي صلاحيته بين اليوم وخلال 7 أيام قادمة)
+    // تنتهي هذا الأسبوع
     $expiring_soon = $pdo->query("
         SELECT COUNT(*) FROM ({$latestSubQuery}) AS sub 
-        WHERE sub.end_date >= CURDATE() AND DATEDIFF(sub.end_date, CURDATE()) <= 7
+        WHERE sub.end_date >= CURRENT_DATE() AND DATEDIFF(sub.end_date, CURRENT_DATE()) <= 7
     ")->fetchColumn();
     
     // جلب آخر 4 تسجيلات دخول لليوم الحالي (Today Check-ins)
@@ -70,7 +70,7 @@ try {
                 ORDER BY s.id DESC LIMIT 1) AS package_name
         FROM check_ins c
         JOIN members m ON m.id = c.member_id
-        WHERE DATE(c.check_in_time) = CURDATE()
+        WHERE DATE(c.check_in_time) = CURRENT_DATE()
         ORDER BY c.check_in_time DESC
         LIMIT 4
     ");
@@ -288,7 +288,7 @@ try {
               <a href="check-in.php" class="btn btn-info text-white btn-lg">
                 <i class="bi bi-qr-code-scan me-2"></i>تسجيل دخول عضو
               </a>
-              <a href="create-invoice.php" class="btn btn-warning btn-lg">
+              <a href="create-invoice.php" class="btn your-custom-class btn-warning btn-lg">
                 <i class="bi bi-receipt me-2"></i>إنشاء فاتورة جديدة
               </a>
             </div>
@@ -306,35 +306,6 @@ try {
                     من <?php echo date("h:i A", strtotime($sys_settings['open_time'])); ?> 
                     إلى <?php echo date("h:i A", strtotime($sys_settings['close_time'])); ?>
                 </p>
-            </div>
-          </div>
-
-          <!-- Card: Membership Packages Summary -->
-          <div class="card mb-4">
-            <div class="card-header">
-              <h3 class="card-title"><i class="bi bi-card-checklist me-2"></i>أنواع الباقات المتاحة</h3>
-            </div>
-            <div class="card-body p-0">
-              <ul class="list-group list-group-flush">
-                <?php 
-                try {
-                    $packages = $pdo->query("SELECT * FROM packages")->fetchAll(PDO::FETCH_ASSOC);
-                } catch (PDOException $e) {
-                    $packages = [];
-                }
-                
-                if (!empty($packages)) {
-                    foreach ($packages as $pkg) {
-                        echo '<li class="list-group-item d-flex justify-content-between align-items-center">';
-                        echo htmlspecialchars($pkg['name']); 
-                        echo '<span class="badge bg-primary rounded-pill">' . number_format($pkg['price'], 2) . ' ' . htmlspecialchars($currency) . '</span>';
-                        echo '</li>';
-                    }
-                } else {
-                    echo '<li class="list-group-item text-center text-muted">لا توجد باقات متاحة حالياً</li>';
-                }
-                ?>
-              </ul>
             </div>
           </div>
 
