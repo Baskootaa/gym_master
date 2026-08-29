@@ -26,7 +26,7 @@ $search = trim($_GET['search'] ?? '');
 $members = [];
 
 try {
-    // 1. تحديث جدول الأعضاء تلقائياً بناءً على أحدث اشتراك لضمان تزامن البيانات فوراً
+    // مزامنة وتحديث جدول الأعضاء تلقائياً بناءً على أكبر ID في جدول الاشتراكات لكل عضو
     $pdo->exec("
         UPDATE members m
         JOIN (
@@ -43,7 +43,7 @@ try {
             m.membership_type = sub_latest.pkg_name
     ");
 
-    // 2. استعلام جلب الأعضاء مع حساب الحالة الفورية بدقة
+    // استعلام جلب الأعضاء مع أحدث اشتراك وحالته بدقة تامة
     $sql = "SELECT m.*, 
                    COALESCE(sub_latest.end_date, m.subscription_end) AS subscription_end,
                    COALESCE(p.name, m.membership_type, 'بدون اشتراك') AS membership_type,
