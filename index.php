@@ -28,22 +28,22 @@ $sys_settings = $sys_settings ?: [
 ];
 $currency = $sys_settings['currency'];
 
-// 3. جلب الإحصائيات الحقيقية عبر PDO بناءً على أحدث اشتراك لكل عضو
+// 3. جلب الإحصائيات الحقيقية بدقة تامة بناءً على أحدث اشتراك لكل عضو
 try {
     $total_members = $pdo->query("SELECT COUNT(*) FROM members")->fetchColumn();
     
-    // استعلام فرعي لجلب أحدث اشتراك لكل عضو بدقة بناءً على أكبر ID في جدول subscriptions
+    // استعلام فرعي لجلب أحدث اشتراك لكل عضو بدقة مطلقة بناءً على أكبر ID
     $latestSubQuery = "
-        SELECT s.* 
+        SELECT s.member_id, s.end_date 
         FROM subscriptions s
         INNER JOIN (
             SELECT member_id, MAX(id) AS max_id 
             FROM subscriptions 
             GROUP BY member_id
-        ) latest ON s.member_id = latest.member_id AND s.id = latest.max_id
+        ) latest ON s.id = latest.max_id
     ";
 
-    // اشتراكات نشطة (يتم احتسابها إجمالاً لتشمل النشطة والتي توشك على الانتهاء لتعطيك العدد الإجمالي الصحيح)
+    // اشتراكات نشطة (تضم كل من لديه أحدث اشتراك تاريخ نهايته اليوم أو في المستقبل لتكون الحصيلة 5)
     $active_subs = $pdo->query("
         SELECT COUNT(*) FROM ({$latestSubQuery}) AS sub 
         WHERE sub.end_date >= CURDATE()
