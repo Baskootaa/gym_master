@@ -28,11 +28,11 @@ $sys_settings = $sys_settings ?: [
 ];
 $currency = $sys_settings['currency'];
 
-// 3. جلب الإحصائيات عبر PDO (معدلة لتعتمد على أحدث اشتراك لكل عضو بناءً على أكبر ID بطريقة سليمة)
+// 3. جلب الإحصائيات الحقيقية عبر PDO بناءً على أحدث اشتراك لكل عضو
 try {
     $total_members = $pdo->query("SELECT COUNT(*) FROM members")->fetchColumn();
     
-    // استعلام فرعي لجلب أحدث اشتراك لكل عضو بدقة
+    // استعلام فرعي لجلب أحدث اشتراك لكل عضو بدقة بناءً على أكبر ID
     $latestSubQuery = "
         SELECT s.* 
         FROM subscriptions s
@@ -55,7 +55,7 @@ try {
         WHERE sub.end_date < CURDATE()
     ")->fetchColumn();
     
-    // تنتهي هذا الأسبوع (أحدث اشتراك تنتهي صلاحيته بين اليوم وخلال 7 أيام)
+    // تنتهي هذا الأسبوع (أحدث اشتراك تنتهي صلاحيته بين اليوم وخلال 7 أيام قادمة)
     $expiring_soon = $pdo->query("
         SELECT COUNT(*) FROM ({$latestSubQuery}) AS sub 
         WHERE sub.end_date >= CURDATE() AND DATEDIFF(sub.end_date, CURDATE()) <= 7

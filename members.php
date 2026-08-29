@@ -26,26 +26,25 @@ $search = trim($_GET['search'] ?? '');
 $members = [];
 
 try {
-    // استعلام دقيق يربط العضو بآخر اشتراك تم تسجيله له حصرياً من جدول subscriptions
+    // استعلام دقيق يربط العضو حصرياً بآخر اشتراك تم تسجيله له بناءً على أكبر ID في جدول subscriptions
     $sql = "SELECT m.*, 
-                   COALESCE(sub_latest.end_date, m.subscription_end) AS subscription_end,
-                   COALESCE(sub_latest.package_name, m.membership_type) AS membership_type,
+                   sub_latest.end_date AS subscription_end,
+                   p.name AS membership_type,
                    CASE 
                        WHEN sub_latest.end_date IS NOT NULL AND sub_latest.end_date >= CURDATE() THEN 'نشط'
                        WHEN sub_latest.end_date IS NOT NULL AND sub_latest.end_date < CURDATE() THEN 'منتهي'
-                       ELSE m.status
+                       ELSE 'منتهي'
                    END AS calculated_status
             FROM members m
             LEFT JOIN (
-                SELECT s.member_id, s.end_date, p.name AS package_name
-                FROM subscriptions s
-                LEFT JOIN packages p ON s.package_id = p.id
+                subscriptions s
                 INNER JOIN (
                     SELECT member_id, MAX(id) AS max_id
                     FROM subscriptions
                     GROUP BY member_id
                 ) latest ON s.id = latest.max_id
-            ) sub_latest ON m.id = sub_latest.member_id";
+            ) sub_latest ON m.id = sub_latest.member_id
+            LEFT JOIN packages p ON sub_latest.package_id = p.id";
 
     if ($search !== '') {
         $sql .= " WHERE m.full_name LIKE ? OR m.phone LIKE ?";
@@ -138,16 +137,14 @@ try {
                                             <td class="fw-bold"><?= htmlspecialchars($m['full_name'] ?? '') ?></td>
                                             <td><?= htmlspecialchars($m['phone'] ?? '') ?></td>
                                             <td><?= htmlspecialchars($m['gender'] ?? '') ?></td>
-                                            <td><span class="badge bg-secondary"><?= htmlspecialchars($m['membership_type'] ?? 'افتراضي') ?></span></td>
+                                            <td><span class="badge bg-secondary"><?= htmlspecialchars($m['membership_type'] ?? 'بدون اشتراك') ?></span></td>
                                             <td><?= htmlspecialchars($m['subscription_end'] ?? '-') ?></td>
                                             <td>
                                                <?php 
-                                                $status = $m['calculated_status'] ?? $m['status'] ?? 'expired'; 
+                                                $status = $m['calculated_status'] ?? 'منتهي'; 
                                                 ?>
-                                                <?php if ($status === 'نشط' || $status === 'active'): ?>
+                                                <?php if ($status === 'نشط'): ?>
                                                     <span class="badge bg-success">نشط</span>
-                                                <?php elseif ($status === 'موقوف' || $status === 'suspended'): ?>
-                                                    <span class="badge bg-warning text-dark">موقوف</span>
                                                 <?php else: ?>
                                                     <span class="badge bg-danger">منتهي</span>
                                                 <?php endif; ?>
