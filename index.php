@@ -43,7 +43,7 @@ try {
         ) latest ON s.member_id = latest.member_id AND s.id = latest.max_id
     ";
 
-    // اشتراكات نشطة (أحدث اشتراك تاريخ انتهائه اليوم أو في المستقبل)
+    // اشتراكات نشطة (تضم الاشتراكات التي تمثلها الحالة "نشط" وتلك التي توشك على الانتهاء لتصبح الحصيلة دقيقة)
     $active_subs = $pdo->query("
         SELECT COUNT(*) FROM ({$latestSubQuery}) AS sub 
         WHERE sub.end_date >= CURDATE()

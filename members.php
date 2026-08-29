@@ -26,7 +26,7 @@ $search = trim($_GET['search'] ?? '');
 $members = [];
 
 try {
-    // استعلام دقيق يربط العضو حصرياً بآخر اشتراك تم تسجيله له بناءً على أكبر ID في جدول subscriptions
+    // استعلام SQL صحيح وسليم نحوياً لجلب بيانات العضو مع أحدث اشتراك وباقته وحالته الحقيقية
     $sql = "SELECT m.*, 
                    sub_latest.end_date AS subscription_end,
                    p.name AS membership_type,
@@ -37,7 +37,8 @@ try {
                    END AS calculated_status
             FROM members m
             LEFT JOIN (
-                subscriptions s
+                SELECT s.member_id, s.package_id, s.end_date
+                FROM subscriptions s
                 INNER JOIN (
                     SELECT member_id, MAX(id) AS max_id
                     FROM subscriptions
