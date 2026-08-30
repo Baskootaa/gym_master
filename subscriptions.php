@@ -17,8 +17,8 @@ if (isset($_GET['delete'])) {
 // إضافة اشتراك جديد (متاح فقط للأدمن والموظف)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (hasRole(['admin', 'staff'])) {
-        $member_id  = (int) ($_POST['member_id'] ?? 0);
-        $package_id = (int) ($_POST['package_id'] ?? 0);
+        $member_id  = isset($_POST['member_id']) ? (int)$_POST['member_id'] : 0;
+        $package_id = isset($_POST['package_id']) ? (int)$_POST['package_id'] : 0;
         $start_date = $_POST['start_date'] ?? date('Y-m-d');
 
         if ($member_id <= 0 || $package_id <= 0) {
@@ -49,7 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'price'      => $price,
                     ]);
                 } catch (PDOException $e) {
-                    // في حال عدم وجود عامود price في جدول الاشتراكات يتم حفظ التكلفة في عامود cost أو الحفظ بدون العامود
+                    // في حال عدم وجود عامود price في جدول الاشتراكات يتم الحفظ بدون العامود
                     $stmt = $pdo->prepare(
                         'INSERT INTO subscriptions (member_id, package_id, start_date, end_date)
                          VALUES (:member_id, :package_id, :start_date, :end_date)'
@@ -62,7 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ]);
                 }
 
-                // تحديث حالة العضو فقط في جدول الأعضاء أوتوماتيكياً (تم إزالة subscription_end_date لعدم وجود العمود في جدول members)
+                // تحديث حالة العضو في جدول الأعضاء أوتوماتيكياً
                 $update_member = $pdo->prepare('UPDATE members SET status = "active" WHERE id = :member_id');
                 $update_member->execute([
                     'member_id'  => $member_id
@@ -139,7 +139,7 @@ require_once 'includes/sidebar.php';
                     <select name="member_id" class="form-select" required>
                       <option value="">-- اختار عضو --</option>
                       <?php foreach ($members as $member): ?>
-                        <option value="<?= $member['id'] ?>"><?= htmlspecialchars($member['full_name']) ?></option>
+                        <option value="<?= (int)$member['id'] ?>"><?= htmlspecialchars($member['full_name']) ?></option>
                       <?php endforeach; ?>
                     </select>
                   </div>
@@ -148,7 +148,7 @@ require_once 'includes/sidebar.php';
                     <select name="package_id" class="form-select" required>
                       <option value="">-- اختار باقة --</option>
                       <?php foreach ($packages as $package): ?>
-                        <option value="<?= $package['id'] ?>">
+                        <option value="<?= (int)$package['id'] ?>">
                           <?= htmlspecialchars($package['name']) ?> (<?= $package['duration_days'] ?> يوم) - <?= number_format($package['price'], 2) ?> ج.م
                         </option>
                       <?php endforeach; ?>
