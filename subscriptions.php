@@ -73,7 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 if (empty($errors)) {
-                    // تحديث حالة العضو في جدول الأعضاء أوتوماتيكياً
+                    // تحديث حالة العضو في جدول الأعضاء أوتوماتيكياً ليكون نشطاً
                     $update_member = $pdo->prepare('UPDATE members SET status = "active" WHERE id = :member_id');
                     $update_member->execute([
                         'member_id'  => $member_id
