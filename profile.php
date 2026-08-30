@@ -33,8 +33,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
             // توجيه مسار الرفع إلى مجلد uploads/avatars/ لتتوافق مع الـ header.php
             $uploadFileDir = __DIR__ . '/uploads/avatars/';
             if (!is_dir($uploadFileDir)) {
-                mkdir($uploadFileDir, 0755, true);
+                @mkdir($uploadFileDir, 0777, true);
             }
+            // التأكد دائماً من ضبط الصلاحيات بشكل صحيح على سيرفرات الاستضافة
+            @chmod($uploadFileDir, 0777);
             
             // تسمية الصورة باسم نظيف وثابت يعتمد على الـ ID الخاص بالمستخدم وامتداد الملف فقط
             $newFileName = 'avatar_' . $user_id . '.' . $fileExtension;
@@ -123,7 +125,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
             if (isset($_SESSION['name'])) $_SESSION['name'] = $name;
             if (isset($_SESSION['user_name'])) $_SESSION['user_name'] = $name;
             $_SESSION['email'] = $email;
-            if ($avatar_filename !== null && isset($_SESSION['avatar'])) {
+            if ($avatar_filename !== null) {
                 $_SESSION['avatar'] = 'uploads/avatars/' . $avatar_filename;
             }
 

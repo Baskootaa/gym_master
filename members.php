@@ -1,8 +1,4 @@
 <?php
-/**
- * صفحة إدارة وعرض الأعضاء - GYM MASTER
- */
-
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -26,13 +22,12 @@ $search = trim($_GET['search'] ?? '');
 $members = [];
 
 try {
-    // استعلام يعتمد على أحدث اشتراك لكل عضو من جدول subscriptions لضمان عرض التاريخ والحالة الصحيحة 100%
+    // جعل جدول الأعضاء أساسياً مع جلب أحدث اشتراك لكل عضو من جدول subscriptions بدقة مطلقة
     $sql = "SELECT m.*, 
                    sub_latest.end_date AS subscription_end,
                    p.name AS membership_type,
                    CASE 
                        WHEN sub_latest.end_date IS NOT NULL AND sub_latest.end_date >= CURRENT_DATE() THEN 'نشط'
-                       WHEN sub_latest.end_date IS NOT NULL AND sub_latest.end_date < CURRENT_DATE() THEN 'منتهي'
                        ELSE 'منتهي'
                    END AS calculated_status
             FROM members m
@@ -132,30 +127,30 @@ try {
                             </thead>
                             <tbody>
                                 <?php if (!empty($members)): ?>
-                                    <?php foreach ($members as $index => $m): ?>
-                                        <?php 
-                                            $display_end = $m['subscription_end'] ?? '-';
-                                            $display_pkg = $m['membership_type'] ?? 'بدون اشتراك';
-                                            $display_status = $m['calculated_status'] ?? 'منتهي';
+                                    <?php foreach ($members as $index => $m): 
+                                        $display_end = $m['subscription_end'] ?? '-';
+                                        $display_pkg = $m['membership_type'] ?? 'بدون اشتراك';
+                                        $display_status = $m['calculated_status'] ?? 'منتهي';
 
-                                            try {
-                                                $subCheck = $pdo->prepare("
-                                                    SELECT s.end_date, p.name AS pkg_name 
-                                                    FROM subscriptions s 
-                                                    JOIN packages p ON s.package_id = p.id 
-                                                    WHERE s.member_id = ? 
-                                                    ORDER BY s.id DESC 
-                                                    LIMIT 1
-                                                ");
-                                                $subCheck->execute([$m['id']]);
-                                                $latest_sub = $subCheck->fetch(PDO::FETCH_ASSOC);
-                                                if ($latest_sub) {
-                                                    $display_end = $latest_sub['end_date'];
-                                                    $display_pkg = $latest_sub['pkg_name'];
-                                                    $display_status = (strtotime($display_end) >= strtotime(date('Y-m-d'))) ? 'نشط' : 'منتهي';
-                                                }
-                                            } catch (Exception $ex) {}
-                                        ?>
+                                        // التحقق المباشر من أحدث اشتراك لكل عضو لضمان مطابقة صفحة الاشتراكات 100%
+                                        try {
+                                            $subCheck = $pdo->prepare("
+                                                SELECT s.end_date, p.name AS pkg_name 
+                                                FROM subscriptions s 
+                                                JOIN packages p ON s.package_id = p.id 
+                                                WHERE s.member_id = ? 
+                                                ORDER BY s.id DESC 
+                                                LIMIT 1
+                                            ");
+                                            $subCheck->execute([$m['id']]);
+                                            $latest_sub = $subCheck->fetch(PDO::FETCH_ASSOC);
+                                            if ($latest_sub) {
+                                                $display_end = $latest_sub['end_date'];
+                                                $display_pkg = $latest_sub['pkg_name'];
+                                                $display_status = (strtotime($display_end) >= strtotime(date('Y-m-d'))) ? 'نشط' : 'منتهي';
+                                            }
+                                        } catch (Exception $ex) {}
+                                    ?>
                                         <tr>
                                             <td><?= $index + 1 ?></td>
                                             <td class="fw-bold"><?= htmlspecialchars($m['full_name'] ?? '') ?></td>

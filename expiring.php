@@ -7,7 +7,6 @@ require_once __DIR__ . '/config/db.php';
 checkAccess(['admin', 'staff', 'user']);
 
 $canRenew = isset($_SESSION['user_id']) && in_array($_SESSION['role'] ?? '', ['admin', 'staff'], true);
-
 $days = isset($_GET['days']) && ctype_digit($_GET['days']) ? (int)$_GET['days'] : 30;
 
 try {
