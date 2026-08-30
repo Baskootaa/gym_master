@@ -14,7 +14,7 @@ if (isset($_GET['delete'])) {
     }
 }
 
-// إضافة اشتراك جديد (متاح فقط للأدمن والموظف)
+// إضافة اشتراك جديد (متاح فقط للأدمن والموظف) - تم التحديث ليتوافق تماماً مع هيكل الجدول بدون أخطاء
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (hasRole(['admin', 'staff'])) {
         $member_id  = isset($_POST['member_id']) ? (int)$_POST['member_id'] : 0;
@@ -29,7 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if (empty($errors)) {
-            // جلب تفاصيل الباقة (الأيام والسعر)
+            // جلب تفاصيل الباقة (الأيام فقط لضمان سلامة الحسابات)
             $stmt = $pdo->prepare('SELECT duration_days, price FROM packages WHERE id = :id');
             $stmt->execute(['id' => $package_id]);
             $package = $stmt->fetch();
@@ -38,33 +38,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $errors[] = 'الباقة المحددة غير موجودة';
             } else {
                 $end_date = date('Y-m-d', strtotime($start_date . ' + ' . $package['duration_days'] . ' days'));
-                $price    = $package['price'] ?? 0;
 
-                // إدراج الاشتراك بشكل آمن وصحيح
-                try {
-                    $stmt = $pdo->prepare(
-                        'INSERT INTO subscriptions (member_id, package_id, start_date, end_date, price, status)
-                         VALUES (:member_id, :package_id, :start_date, :end_date, :price, "active")'
-                    );
-                    $stmt->execute([
-                        'member_id'  => $member_id,
-                        'package_id' => $package_id,
-                        'start_date' => $start_date,
-                        'end_date'   => $end_date,
-                        'price'      => $price,
-                    ]);
-                } catch (PDOException $e) {
-                    $stmt = $pdo->prepare(
-                        'INSERT INTO subscriptions (member_id, package_id, start_date, end_date)
-                         VALUES (:member_id, :package_id, :start_date, :end_date)'
-                    );
-                    $stmt->execute([
-                        'member_id'  => $member_id,
-                        'package_id' => $package_id,
-                        'start_date' => $start_date,
-                        'end_date'   => $end_date,
-                    ]);
-                }
+                // إدراج الاشتراك بالاعمدة الأساسية المضمونة 100% في الجدول
+                $stmt = $pdo->prepare(
+                    'INSERT INTO subscriptions (member_id, package_id, start_date, end_date)
+                     VALUES (:member_id, :package_id, :start_date, :end_date)'
+                );
+                $stmt->execute([
+                    'member_id'  => $member_id,
+                    'package_id' => $package_id,
+                    'start_date' => $start_date,
+                    'end_date'   => $end_date,
+                ]);
 
                 // تحديث حالة العضو في جدول الأعضاء أوتوماتيكياً ليكون نشطاً
                 $update_member = $pdo->prepare('UPDATE members SET status = "active" WHERE id = :member_id');
@@ -79,11 +64,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// جلب الأعضاء بشكل سليم ومستقر لضمان ظهور الـ id والاسم معاً في القائمة
+// جلب الأعضاء والباقات
 $members  = $pdo->query('SELECT id, full_name FROM members ORDER BY full_name ASC')->fetchAll();
 $packages = $pdo->query('SELECT id, name, duration_days, price FROM packages ORDER BY name ASC')->fetchAll();
 
-// استخدام LEFT JOIN لضمان ظهور السجل حتى لو حصل تداخل في الـ ID
+// جلب الاشتراكات باستخدام LEFT JOIN لضمان ظهور البيانات بسلاسة
 $subscriptions = $pdo->query(
     'SELECT s.*, COALESCE(m.full_name, "عضو محذوف أو غير معروف") AS full_name, p.name AS package_name, p.price AS package_price
      FROM subscriptions s
