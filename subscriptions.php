@@ -17,20 +17,19 @@ if (isset($_GET['delete'])) {
 // إضافة اشتراك جديد (متاح فقط للأدمن والموظف)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (hasRole(['admin', 'staff'])) {
-        // التقاط الـ member_id بأمان تامة وبأكثر من احتمال لاسم الحقل
-        $member_id = 0;
-        if (!empty($_POST['member_id'])) {
-            $member_id = (int)$_POST['member_id'];
-        } elseif (!empty($_POST['member'])) {
-            $member_id = (int)$_POST['member'];
-        }
-
+        // التقاط الـ member_id والتأكد من أنه رقم موجب صحيح أكبر من الصفر تماماً
+        $member_id  = isset($_POST['member_id']) ? (int)$_POST['member_id'] : 0;
         $package_id = isset($_POST['package_id']) ? (int)$_POST['package_id'] : 0;
         $start_date = $_POST['start_date'] ?? date('Y-m-d');
 
-        if ($member_id <= 0 || $package_id <= 0) {
-            $errors[] = 'من فضلك اختار العضو والباقة بشكل صحيح';
-        } else {
+        if ($member_id <= 0) {
+            $errors[] = 'خطأ: لا يمكن تسجيل اشتراك لعضو غير مرجح أو يحمل ID غير صالح (يجب أن يكون أكبر من صفر)';
+        }
+        if ($package_id <= 0) {
+            $errors[] = 'من فضلك اختار الباقة';
+        }
+
+        if (empty($errors)) {
             // جلب تفاصيل الباقة (الأيام والسعر)
             $stmt = $pdo->prepare('SELECT duration_days, price FROM packages WHERE id = :id');
             $stmt->execute(['id' => $package_id]);
@@ -42,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $end_date = date('Y-m-d', strtotime($start_date . ' + ' . $package['duration_days'] . ' days'));
                 $price    = $package['price'] ?? 0;
 
-                // إدراج الاشتراك مع التحقق التام من استقبال member_id
+                // إدراج الاشتراك بشكل آمن وصحيح 100%
                 try {
                     $stmt = $pdo->prepare(
                         'INSERT INTO subscriptions (member_id, package_id, start_date, end_date, price, status)
@@ -56,38 +55,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'price'      => $price,
                     ]);
                 } catch (PDOException $e) {
-                    try {
-                        $stmt = $pdo->prepare(
-                            'INSERT INTO subscriptions (member_id, package_id, start_date, end_date)
-                             VALUES (:member_id, :package_id, :start_date, :end_date)'
-                        );
-                        $stmt->execute([
-                            'member_id'  => $member_id,
-                            'package_id' => $package_id,
-                            'start_date' => $start_date,
-                            'end_date'   => $end_date,
-                        ]);
-                    } catch (PDOException $e2) {
-                        $errors[] = 'خطأ في قاعدة البيانات: ' . $e2->getMessage();
-                    }
-                }
-
-                if (empty($errors)) {
-                    // تحديث حالة العضو في جدول الأعضاء أوتوماتيكياً ليكون نشطاً
-                    $update_member = $pdo->prepare('UPDATE members SET status = "active" WHERE id = :member_id');
-                    $update_member->execute([
-                        'member_id'  => $member_id
+                    $stmt = $pdo->prepare(
+                        'INSERT INTO subscriptions (member_id, package_id, start_date, end_date)
+                         VALUES (:member_id, :package_id, :start_date, :end_date)'
+                    );
+                    $stmt->execute([
+                        'member_id'  => $member_id,
+                        'package_id' => $package_id,
+                        'start_date' => $start_date,
+                        'end_date'   => $end_date,
                     ]);
-
-                    header('Location: subscriptions.php?added=1');
-                    exit;
                 }
+
+                // تحديث حالة العضو في جدول الأعضاء أوتوماتيكياً ليكون نشطاً
+                $update_member = $pdo->prepare('UPDATE members SET status = "active" WHERE id = :member_id');
+                $update_member->execute([
+                    'member_id' => $member_id
+                ]);
+
+                header('Location: subscriptions.php?added=1');
+                exit;
             }
         }
     }
 }
 
-$members  = $pdo->query('SELECT id, full_name FROM members ORDER BY full_name ASC')->fetchAll();
+$members  = $pdo->query('SELECT id, full_name FROM members WHERE id > 0 ORDER BY full_name ASC')->fetchAll();
 $packages = $pdo->query('SELECT id, name, duration_days, price FROM packages ORDER BY name ASC')->fetchAll();
 
 $subscriptions = $pdo->query(
