@@ -35,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $end_date = date('Y-m-d', strtotime($start_date . ' + ' . $package['duration_days'] . ' days'));
                 $price    = $package['price'] ?? 0;
 
-                // إدراج الاشتراك مع حفظ سعر الباقات المختلفة (حصة، شهر، سنة)
+                // إدراج الاشتراك مع التحقق التام من استقبال member_id
                 try {
                     $stmt = $pdo->prepare(
                         'INSERT INTO subscriptions (member_id, package_id, start_date, end_date, price, status)
@@ -49,27 +49,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'price'      => $price,
                     ]);
                 } catch (PDOException $e) {
-                    // في حال عدم وجود عامود price في جدول الاشتراكات يتم الحفظ بدون العامود
-                    $stmt = $pdo->prepare(
-                        'INSERT INTO subscriptions (member_id, package_id, start_date, end_date)
-                         VALUES (:member_id, :package_id, :start_date, :end_date)'
-                    );
-                    $stmt->execute([
-                        'member_id'  => $member_id,
-                        'package_id' => $package_id,
-                        'start_date' => $start_date,
-                        'end_date'   => $end_date,
-                    ]);
+                    try {
+                        $stmt = $pdo->prepare(
+                            'INSERT INTO subscriptions (member_id, package_id, start_date, end_date)
+                             VALUES (:member_id, :package_id, :start_date, :end_date)'
+                        );
+                        $stmt->execute([
+                            'member_id'  => $member_id,
+                            'package_id' => $package_id,
+                            'start_date' => $start_date,
+                            'end_date'   => $end_date,
+                        ]);
+                    } catch (PDOException $e2) {
+                        $errors[] = 'خطأ في قاعدة البيانات: ' . $e2->getMessage();
+                    }
                 }
 
-                // تحديث حالة العضو في جدول الأعضاء أوتوماتيكياً
-                $update_member = $pdo->prepare('UPDATE members SET status = "active" WHERE id = :member_id');
-                $update_member->execute([
-                    'member_id'  => $member_id
-                ]);
+                if (empty($errors)) {
+                    // تحديث حالة العضو في جدول الأعضاء أوتوماتيكياً
+                    $update_member = $pdo->prepare('UPDATE members SET status = "active" WHERE id = :member_id');
+                    $update_member->execute([
+                        'member_id'  => $member_id
+                    ]);
 
-                header('Location: subscriptions.php?added=1');
-                exit;
+                    header('Location: subscriptions.php?added=1');
+                    exit;
+                }
             }
         }
     }
