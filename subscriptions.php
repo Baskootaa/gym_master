@@ -17,12 +17,19 @@ if (isset($_GET['delete'])) {
 // إضافة اشتراك جديد (متاح فقط للأدمن والموظف)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (hasRole(['admin', 'staff'])) {
-        $member_id  = isset($_POST['member_id']) ? (int)$_POST['member_id'] : 0;
+        // التقاط الـ member_id بأمان تامة وبأكثر من احتمال لاسم الحقل
+        $member_id = 0;
+        if (!empty($_POST['member_id'])) {
+            $member_id = (int)$_POST['member_id'];
+        } elseif (!empty($_POST['member'])) {
+            $member_id = (int)$_POST['member'];
+        }
+
         $package_id = isset($_POST['package_id']) ? (int)$_POST['package_id'] : 0;
         $start_date = $_POST['start_date'] ?? date('Y-m-d');
 
         if ($member_id <= 0 || $package_id <= 0) {
-            $errors[] = 'من فضلك اختار العضو والباقة';
+            $errors[] = 'من فضلك اختار العضو والباقة بشكل صحيح';
         } else {
             // جلب تفاصيل الباقة (الأيام والسعر)
             $stmt = $pdo->prepare('SELECT duration_days, price FROM packages WHERE id = :id');
