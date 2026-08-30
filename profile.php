@@ -30,12 +30,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
         $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif'];
         
         if (in_array($fileExtension, $allowedExtensions)) {
-            // توجيه مسار الرفع إلى مجلد uploads/avatars/ لتتوافق مع الـ header.php
+            // توجيه مسار الرفع إلى مجلد uploads/avatars/ المطلوبة بدقة
             $uploadFileDir = __DIR__ . '/uploads/avatars/';
+            
+            // التأكد من وجود المجلد ومنح صلاحيات الكتابة لمنع خطأ Permission Denied نهائياً
             if (!is_dir($uploadFileDir)) {
                 @mkdir($uploadFileDir, 0777, true);
             }
-            // التأكد دائماً من ضبط الصلاحيات بشكل صحيح على سيرفرات الاستضافة
             @chmod($uploadFileDir, 0777);
             
             // تسمية الصورة باسم نظيف وثابت يعتمد على الـ ID الخاص بالمستخدم وامتداد الملف فقط
@@ -51,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
             }
             
             if (move_uploaded_file($fileTmpPath, $dest_path)) {
-                // حفظ اسم الملف فقط ليطابق آلية الجلب في الـ header.php
+                // حفظ اسم الملف فقط ليطابق آلية الجلب في الهيدر
                 $avatar_filename = $newFileName;
             }
         }
@@ -159,7 +160,6 @@ $current_avatar_db = $user['avatar'] ?? '';
 // تجهيز مسار الصورة لعرضها في صفحة البروفايل بشكل سليم
 $current_avatar_display = '';
 if (!empty($current_avatar_db)) {
-    // إذا كان المسار مخزناً كاملاً أو اسم ملف فقط
     if (strpos($current_avatar_db, 'uploads/') === 0) {
         $current_avatar_display = BASE_URL . $current_avatar_db;
     } else {
