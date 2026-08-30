@@ -28,7 +28,15 @@ $sys_settings = $sys_settings ?: [
 ];
 $currency = $sys_settings['currency'];
 
-// 3. جلب الإحصائيات مباشرة وحصرياً من جدول الاشتراكات (subscriptions) بناءً على أحدث اشتراك لكل عضو
+// 3. جلب الباقات ديناميكياً من قاعدة البيانات لضمان زيادة أي باقة جديدة تلقائياً
+try {
+    $packagesStmt = $pdo->query("SELECT id, name, duration_days, price FROM packages ORDER BY id ASC");
+    $active_packages = $packagesStmt ? $packagesStmt->fetchAll(PDO::FETCH_ASSOC) : [];
+} catch (PDOException $e) {
+    $active_packages = [];
+}
+
+// 4. جلب الإحصائيات مباشرة وحصرياً من جدول الاشتراكات (subscriptions) بناءً على أحدث اشتراك لكل عضو
 try {
     $total_members = $pdo->query("SELECT COUNT(*) FROM members")->fetchColumn();
     
@@ -306,6 +314,41 @@ try {
                     من <?php echo date("h:i A", strtotime($sys_settings['open_time'])); ?> 
                     إلى <?php echo date("h:i A", strtotime($sys_settings['close_time'])); ?>
                 </p>
+            </div>
+          </div>
+
+          <!-- Card: Package Prices (ديناميكي يتحدث تلقائياً عند إضافة أو تعديل أي باقة) -->
+          <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+              <h3 class="card-title"><i class="bi bi-tags-fill me-2"></i>أسعار باقات الاشتراك</h3>
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                  <thead class="table-light">
+                    <tr>
+                      <th>الباقة</th>
+                      <th>المدة</th>
+                      <th class="text-end">السعر</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <?php if (!empty($active_packages)): ?>
+                      <?php foreach ($active_packages as $pkg): ?>
+                        <tr>
+                          <td><strong><?php echo htmlspecialchars($pkg['name']); ?></strong></td>
+                          <td><span class="badge bg-info text-dark"><?php echo (int)$pkg['duration_days']; ?> يوم</span></td>
+                          <td class="text-end text-success fw-bold"><?php echo number_format($pkg['price'], 2); ?> <?php echo htmlspecialchars($currency); ?></td>
+                        </tr>
+                      <?php endforeach; ?>
+                    <?php else: ?>
+                      <tr>
+                        <td colspan="3" class="text-center text-muted py-3">لا توجد باقات مضافة حالياً</td>
+                      </tr>
+                    <?php endif; ?>
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
 
