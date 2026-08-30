@@ -1,8 +1,52 @@
-self.addEventListener('install', (e) => {
-  console.log('[Service Worker] Installed');
+const CACHE_NAME = 'gym-master-v2';
+const assetsToCache = [
+  '/',
+  '/index.php',
+  '/css/adminlte.rtl.css',
+  '/js/adminlte.js',
+  '/manifest.json'
+];
+
+// تثبيت الـ Service Worker وحفظ الملفات الثابتة فقط
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.addAll(assetsToCache);
+    })
+  );
+  self.skipWaiting();
 });
 
-self.addEventListener('fetch', (e) => {
-  // تفعيل الجلب العادي للملفات والبيانات
-  e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
+// تفعيل وتطهير الكاش القديم
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((cache) => {
+          if (cache !== CACHE_NAME) {
+            return caches.delete(cache);
+          }
+        })
+      );
+    })
+  );
+  self.clients.claim();
+});
+
+// جلب الملفات: استثناء تام لصفحات الـ PHP لتأخذ بياناتها حية من السيرفر دائماً
+self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
+  
+  // إذا كانت الصفحة PHP، لا تقم بعمل كاش لها ووجه الطلب للسيرفر مباشرة لتحديث البيانات
+  if (url.pathname.endsWith('.php') || event.request.method !== 'GET') {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
+  // للملفات الثابتة فقط
+  event.respondWith(
+    caches.match(event.request).then((cachedResponse) => {
+      return cachedResponse || fetch(event.request);
+    })
+  );
 });
