@@ -32,7 +32,7 @@ $currency = $sys_settings['currency'];
 try {
     $total_members = $pdo->query("SELECT COUNT(*) FROM members")->fetchColumn();
     
-    // استعلام فرعي لجلب أحدث اشتراك لكل عضو من جدول subscriptions حصرياً
+    // استعلام فرعي لجلب أحدث اشتراك لكل عضو من جدول subscriptions حصرياً بناءً على أكبر ID
     $latestSubQuery = "
         SELECT s.member_id, s.end_date 
         FROM subscriptions s

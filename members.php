@@ -26,7 +26,7 @@ $search = trim($_GET['search'] ?? '');
 $members = [];
 
 try {
-    // استعلام ذكي وقوي يربط جدول الأعضاء مباشرة بأحدث اشتراك مسجل في جدول subscriptions لكل عضو بناءً على أكبر ID
+    // استعلام يعتمد على أحدث اشتراك لكل عضو من جدول subscriptions لضمان عرض التاريخ والحالة الصحيحة 100%
     $sql = "SELECT m.*, 
                    sub_latest.end_date AS subscription_end,
                    p.name AS membership_type,
@@ -134,7 +134,6 @@ try {
                                 <?php if (!empty($members)): ?>
                                     <?php foreach ($members as $index => $m): ?>
                                         <?php 
-                                            // جلب أحدث تاريخ اشتراك ونوعه مباشرة بناءً على member_id لضمان الدقة المطلقة
                                             $display_end = $m['subscription_end'] ?? '-';
                                             $display_pkg = $m['membership_type'] ?? 'بدون اشتراك';
                                             $display_status = $m['calculated_status'] ?? 'منتهي';

@@ -15,7 +15,7 @@ try {
         SELECT m.*, 
                sub_latest.end_date AS subscription_end, 
                sub_latest.membership_type, 
-               DATEDIFF(sub_latest.end_date, CURDATE()) AS days_left 
+               DATEDIFF(sub_latest.end_date, CURRENT_DATE()) AS days_left 
         FROM members m
         INNER JOIN (
             SELECT s.member_id, s.end_date, p.name AS membership_type, s.id
@@ -27,7 +27,7 @@ try {
                 GROUP BY member_id
             ) latest ON s.id = latest.max_id
         ) sub_latest ON m.id = sub_latest.member_id
-        WHERE DATEDIFF(sub_latest.end_date, CURDATE()) <= ?
+        WHERE DATEDIFF(sub_latest.end_date, CURRENT_DATE()) <= ?
         ORDER BY sub_latest.end_date ASC
     ");
     $stmt->execute([$days]);
