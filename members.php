@@ -22,7 +22,7 @@ $search = trim($_GET['search'] ?? '');
 $members = [];
 
 try {
-    // جعل جدول الأعضاء أساسياً مع جلب أحدث اشتراك لكل عضو من جدول subscriptions بدقة مطلقة
+    // تعديل الاستعلام لجلب أحدث اشتراك لكل عضو مباشرة لضمان مطابقة البيانات الحقيقية من جدول subscriptions
     $sql = "SELECT m.*, 
                    sub_latest.end_date AS subscription_end,
                    p.name AS membership_type,
@@ -34,11 +34,11 @@ try {
             LEFT JOIN (
                 SELECT s.member_id, s.package_id, s.end_date
                 FROM subscriptions s
-                INNER JOIN (
-                    SELECT member_id, MAX(id) AS max_id
-                    FROM subscriptions
+                WHERE s.id IN (
+                    SELECT MAX(id) 
+                    FROM subscriptions 
                     GROUP BY member_id
-                ) latest ON s.id = latest.max_id
+                )
             ) sub_latest ON m.id = sub_latest.member_id
             LEFT JOIN packages p ON sub_latest.package_id = p.id";
 

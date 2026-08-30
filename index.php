@@ -32,24 +32,24 @@ $currency = $sys_settings['currency'];
 try {
     $total_members = $pdo->query("SELECT COUNT(*) FROM members")->fetchColumn();
     
-    // استعلام فرعي لجلب أحدث اشتراك لكل عضو من جدول subscriptions حصرياً بناءً على أكبر ID
+    // استعلام فرعي دقيق لجلب أحدث اشتراك لكل عضو من جدول subscriptions بناءً على أكبر ID
     $latestSubQuery = "
         SELECT s.member_id, s.end_date 
         FROM subscriptions s
-        INNER JOIN (
-            SELECT member_id, MAX(id) AS max_id 
+        WHERE s.id IN (
+            SELECT MAX(id) 
             FROM subscriptions 
             GROUP BY member_id
-        ) latest ON s.id = latest.max_id
+        )
     ";
 
-    // اشتراكات نشطة (تأخذ من جدول الاشتراكات مباشرة لتصبح 5 بدقة)
+    // اشتراكات نشطة 
     $active_subs = $pdo->query("
         SELECT COUNT(*) FROM ({$latestSubQuery}) AS sub 
         WHERE sub.end_date >= CURRENT_DATE()
     ")->fetchColumn();
     
-    // اشتراكات منتهية من جدول الاشتراكات
+    // اشتراكات منتهية 
     $expired_subs = $pdo->query("
         SELECT COUNT(*) FROM ({$latestSubQuery}) AS sub 
         WHERE sub.end_date < CURRENT_DATE()

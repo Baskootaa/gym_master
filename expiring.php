@@ -10,6 +10,7 @@ $canRenew = isset($_SESSION['user_id']) && in_array($_SESSION['role'] ?? '', ['a
 $days = isset($_GET['days']) && ctype_digit($_GET['days']) ? (int)$_GET['days'] : 30;
 
 try {
+    // تعديل الاستعلام لجلب أحدث اشتراك لكل عضو مباشرة من جدول subscriptions حصرياً
     $stmt = $pdo->prepare("
         SELECT m.*, 
                sub_latest.end_date AS subscription_end, 
@@ -20,11 +21,11 @@ try {
             SELECT s.member_id, s.end_date, p.name AS membership_type, s.id
             FROM subscriptions s
             LEFT JOIN packages p ON s.package_id = p.id
-            INNER JOIN (
-                SELECT member_id, MAX(id) AS max_id
-                FROM subscriptions
+            WHERE s.id IN (
+                SELECT MAX(id) 
+                FROM subscriptions 
                 GROUP BY member_id
-            ) latest ON s.id = latest.max_id
+            )
         ) sub_latest ON m.id = sub_latest.member_id
         WHERE DATEDIFF(sub_latest.end_date, CURRENT_DATE()) <= ?
         ORDER BY sub_latest.end_date ASC
