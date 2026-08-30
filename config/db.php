@@ -48,6 +48,10 @@ try {
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         PDO::ATTR_EMULATE_PREPARES   => false,
     ]);
+    
+    // ضبط المنطقة الزمنية لتطابق توقيت مصر (+02:00)
+    $pdo->exec("SET time_zone = '+02:00'");
+
 } catch (PDOException $e) {
     die("خطأ في الاتصال بقاعدة البيانات (PDO): " . $e->getMessage());
 }
@@ -67,8 +71,7 @@ if (!function_exists('isLoggedIn')) {
 
 /**
  * التحقق مما إذا كان للمستخدم دور معين أو أكثر من دور
- * 
- * @param array|string $allowedRoles الأدوار المسموح لها مثل ['admin', 'staff'] أو 'admin'
+ * * @param array|string $allowedRoles الأدوار المسموح لها مثل ['admin', 'staff'] أو 'admin'
  * @return bool
  */
 if (!function_exists('hasRole')) {
@@ -86,8 +89,7 @@ if (!function_exists('hasRole')) {
 
 /**
  * دالة حماية الصفحات: تمنع الوصول للغير مصرح لهم وتوجههم للصفحة الرئيسية أو صفحة الدخول
- * 
- * @param array|string $allowedRoles الأدوار المسموح لها بفتح الصفحة
+ * * @param array|string $allowedRoles الأدوار المسموح لها بفتح الصفحة
  */
 if (!function_exists('checkAccess')) {
     function checkAccess($allowedRoles) {
