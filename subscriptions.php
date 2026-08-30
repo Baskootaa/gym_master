@@ -17,16 +17,15 @@ if (isset($_GET['delete'])) {
 // إضافة اشتراك جديد (متاح فقط للأدمن والموظف)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (hasRole(['admin', 'staff'])) {
-        // التقاط الـ member_id والتأكد من أنه رقم موجب صحيح أكبر من الصفر تماماً
         $member_id  = isset($_POST['member_id']) ? (int)$_POST['member_id'] : 0;
         $package_id = isset($_POST['package_id']) ? (int)$_POST['package_id'] : 0;
         $start_date = $_POST['start_date'] ?? date('Y-m-d');
 
         if ($member_id <= 0) {
-            $errors[] = 'خطأ: لا يمكن تسجيل اشتراك لعضو غير مرجح أو يحمل ID غير صالح (يجب أن يكون أكبر من صفر)';
+            $errors[] = 'من فضلك اختر اسم العضو بشكل صحيح من القائمة';
         }
         if ($package_id <= 0) {
-            $errors[] = 'من فضلك اختار الباقة';
+            $errors[] = 'من فضلك اختر الباقة';
         }
 
         if (empty($errors)) {
@@ -36,12 +35,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $package = $stmt->fetch();
 
             if (!$package) {
-                $errors[] = 'الباقة دي مش موجودة';
+                $errors[] = 'الباقة المحددة غير موجودة';
             } else {
                 $end_date = date('Y-m-d', strtotime($start_date . ' + ' . $package['duration_days'] . ' days'));
                 $price    = $package['price'] ?? 0;
 
-                // إدراج الاشتراك بشكل آمن وصحيح 100%
+                // إدراج الاشتراك بشكل آمن وصحيح
                 try {
                     $stmt = $pdo->prepare(
                         'INSERT INTO subscriptions (member_id, package_id, start_date, end_date, price, status)
@@ -80,14 +79,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$members  = $pdo->query('SELECT id, full_name FROM members WHERE id > 0 ORDER BY full_name ASC')->fetchAll();
+// جلب الأعضاء بشكل سليم ومستقر لضمان ظهور الـ id والاسم معاً في القائمة
+$members  = $pdo->query('SELECT id, full_name FROM members ORDER BY full_name ASC')->fetchAll();
 $packages = $pdo->query('SELECT id, name, duration_days, price FROM packages ORDER BY name ASC')->fetchAll();
 
+// استخدام LEFT JOIN لضمان ظهور السجل حتى لو حصل تداخل في الـ ID
 $subscriptions = $pdo->query(
-    'SELECT s.*, m.full_name, p.name AS package_name, p.price AS package_price
+    'SELECT s.*, COALESCE(m.full_name, "عضو محذوف أو غير معروف") AS full_name, p.name AS package_name, p.price AS package_price
      FROM subscriptions s
-     JOIN members m ON m.id = s.member_id
-     JOIN packages p ON p.id = s.package_id
+     LEFT JOIN members m ON m.id = s.member_id
+     LEFT JOIN packages p ON p.id = s.package_id
      ORDER BY s.id DESC'
 )->fetchAll();
 
@@ -125,7 +126,6 @@ require_once 'includes/sidebar.php';
       <?php endforeach; ?>
 
       <div class="row">
-        <!-- فورم إضافة اشتراك (يظهر فقط للأدمن والموظف) -->
         <?php if (hasRole(['admin', 'staff'])): ?>
         <div class="col-lg-4">
           <div class="card">
@@ -144,7 +144,7 @@ require_once 'includes/sidebar.php';
                     <select name="member_id" class="form-select" required>
                       <option value="">-- اختار عضو --</option>
                       <?php foreach ($members as $member): ?>
-                        <option value="<?= (int)$member['id'] ?>"><?= htmlspecialchars($member['full_name']) ?></option>
+                        <option value="<?= (int)$member['id'] ?>"><?= htmlspecialchars($member['full_name']) ?> (ID: <?= (int)$member['id'] ?>)</option>
                       <?php endforeach; ?>
                     </select>
                   </div>
@@ -174,7 +174,6 @@ require_once 'includes/sidebar.php';
         </div>
         <?php endif; ?>
 
-        <!-- قائمة الاشتراكات: تأخذ المساحة الكاملة 12 للمستخدم العادي، أو 8 لو ظهر بجانبها الفورم -->
         <div class="<?= hasRole(['admin', 'staff']) ? 'col-lg-8' : 'col-lg-12' ?>">
           <div class="card">
             <div class="card-header">
