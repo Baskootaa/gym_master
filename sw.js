@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gym-master-v2';
+const CACHE_NAME = 'gym-master-v3';
 const assetsToCache = [
   '/',
   '/index.php',
@@ -7,7 +7,7 @@ const assetsToCache = [
   '/manifest.json'
 ];
 
-// تثبيت الـ Service Worker وحفظ الملفات الثابتة فقط
+// تثبيت الـ Service Worker
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
@@ -33,18 +33,18 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// جلب الملفات: استثناء تام لصفحات الـ PHP وروابط الـ Base64 (data:)
+// معالجة الـ Fetch مع تجاهل تام لأي روابط Base64 أو بيانات غير HTTP
 self.addEventListener('fetch', (event) => {
   const requestUrl = event.request.url;
-  
-  // تجاهل أي طلب لا يبدأ بـ http أو https (مثل روابط data:image للصور المخزنة كـ Base64)
-  if (!requestUrl.startsWith('http')) {
+
+  // تجاهل أي رابط لا يبدأ بـ http أو https (مثل روابط Base64 للصور data:image) لتجنب أخطاء الـ Fetch
+  if (!requestUrl.startsWith('http://') && !requestUrl.startsWith('https://')) {
     return;
   }
 
   const url = new URL(requestUrl);
-  
-  // إذا كانت الصفحة PHP أو الطلب ليس GET، وجه الطلب للسيرفر مباشرة لتحديث البيانات
+
+  // صفحات الـ PHP توجه للسيرفر مباشرة
   if (url.pathname.endsWith('.php') || event.request.method !== 'GET') {
     event.respondWith(fetch(event.request));
     return;
