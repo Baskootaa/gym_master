@@ -91,13 +91,11 @@ $trainers = $stmt->fetchAll();
                 <div class="text-center">
                   <?php 
                     $trainerPhoto = $trainer['photo'] ?? '';
-                    if (!empty($trainerPhoto)) {
-                        if (strpos($trainerPhoto, 'data:image') === 0) {
-                            $trainerImageSrc = $trainerPhoto;
-                        } else {
-                            $trainerImageSrc = BASE_URL . 'assets/img/' . $trainerPhoto;
-                        }
+                    // إذا كانت الصورة مخزنة كمسار عادي أو اسم ملف
+                    if (!empty($trainerPhoto) && strpos($trainerPhoto, 'data:image') === false) {
+                        $trainerImageSrc = BASE_URL . 'assets/img/' . $trainerPhoto;
                     } else {
+                        // صورة افتراضية في حال كانت فارغة أو تحتوي على كود قديم
                         $trainerImageSrc = BASE_URL . 'assets/img/default-150x150.png';
                     }
                   ?>
