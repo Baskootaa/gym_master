@@ -136,15 +136,8 @@ $current_email = $user['email'] ?? $_SESSION['email'] ?? '';
 $current_phone = $user['phone'] ?? $user['mobile'] ?? $user['telephone'] ?? '';
 $current_avatar_db = $user['photo'] ?? $user['avatar'] ?? $_SESSION['avatar'] ?? $_SESSION['photo'] ?? '';
 
-// تجهيز مسار وعرض الصورة بدعم الصورة الافتراضية للمستخدم الجديد
-$current_avatar_display = '';
-if (!empty($current_avatar_db) && strpos($current_avatar_db, 'data:image') === 0) {
-    $current_avatar_display = $current_avatar_db; // عرض Base64 للمستخدم الذي حدث صورته
-} else if (!empty($current_avatar_db)) {
-    $current_avatar_display = BASE_URL . 'assets/img/' . $current_avatar_db;
-} else {
-    $current_avatar_display = BASE_URL . 'assets/img/user2-160x160.jpg'; // الصورة الافتراضية للمستخدم الجديد
-}
+// تجهيز عرض الصورة لصفحة البروفايل (استخدام الصورة الافتراضية لمنع خطأ Base64 الطويل في صفحة التعديل)
+$current_avatar_display = BASE_URL . 'assets/img/user2-160x160.jpg';
 
 require_once __DIR__ . '/includes/header.php';
 require_once __DIR__ . '/includes/sidebar.php';
