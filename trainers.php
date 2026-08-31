@@ -90,11 +90,20 @@ $trainers = $stmt->fetchAll();
               <div class="card-body box-profile text-center">
                 <div class="text-center">
                   <?php 
-                    $trainerImage = !empty($trainer['photo']) ? $trainer['photo'] : 'default.png';
+                    $trainerPhoto = $trainer['photo'] ?? '';
+                    if (!empty($trainerPhoto)) {
+                        if (strpos($trainerPhoto, 'data:image') === 0) {
+                            $trainerImageSrc = $trainerPhoto;
+                        } else {
+                            $trainerImageSrc = BASE_URL . 'assets/img/' . $trainerPhoto;
+                        }
+                    } else {
+                        $trainerImageSrc = BASE_URL . 'assets/img/default-150x150.png';
+                    }
                   ?>
                   <img
                     class="profile-user-img img-fluid img-circle"
-                    src="<?php echo BASE_URL; ?>assets/img/<?php echo htmlspecialchars($trainerImage); ?>?v=<?php echo time(); ?>"
+                    src="<?php echo $trainerImageSrc; ?>?v=<?php echo time(); ?>"
                     alt="صورة <?php echo htmlspecialchars($trainer['name'] ?? ''); ?>"
                     style="width: 100px; height: 100px; object-fit: cover;"
                   />

@@ -66,11 +66,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $errors[] = 'حجم الصورة أكبر من 2 ميجابايت.';
         } elseif (@getimagesize($tmpPath) === false) {
             $errors[] = 'الملف المرفوع مش صورة صحيحة.';
+        } else {
+            // تحويل الصورة مباشرة إلى Base64 لتخزينها في قاعدة البيانات بدون أي مشاكل في الصلاحيات على Render
+            $imageData = file_get_contents($tmpPath);
+            $mimeType  = mime_content_type($tmpPath);
+            $photo     = 'data:' . $mimeType . ';base64,' . base64_encode($imageData);
         }
     }
 
     if (empty($errors)) {
-        // الخطوة أ: إدخال بيانات المدرب الأول في قاعدة البيانات للحصول على الـ ID الخاص به
+        // إدخال بيانات المدرب مع صورة الـ Base64 مباشرة في قاعدة البيانات
         $sql = 'INSERT INTO trainers (name, specialty, phone, experience_years, photo, status)
                 VALUES (:name, :specialty, :phone, :experience_years, :photo, :status)';
 
@@ -80,33 +85,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ':specialty'        => $specialty,
             ':phone'            => $phone,
             ':experience_years' => (int) $experience,
-            ':photo'            => '', // قيمة مؤقتة لحين حفظ الصورة بالـ ID
+            ':photo'            => $photo,
             ':status'           => $status,
         ]);
-
-        $newTrainerId = $pdo->lastInsertId();
-
-        // الخطوة ب: استخدام مسار نسبي مباشر وآمن تماماً لتجنب مشاكل الصلاحيات على بيئة Render
-        $newFileName = 'trainer_' . $newTrainerId . '.' . $extension;
-        $uploadDir   = 'assets/img/trainers/';
-
-        if (!is_dir($uploadDir)) {
-            @mkdir($uploadDir, 0777, true);
-        }
-        @chmod($uploadDir, 0777);
-
-        if (move_uploaded_file($tmpPath, $uploadDir . $newFileName)) {
-            $photo = 'trainers/' . $newFileName;
-
-            // الخطوة ج: تحديث حقل الصورة في القاعدة بالمسار الصحيح النهائي
-            $updateStmt = $pdo->prepare('UPDATE trainers SET photo = :photo WHERE id = :id');
-            $updateStmt->execute([
-                ':photo' => $photo,
-                ':id'    => $newTrainerId
-            ]);
-        } else {
-            $errors[] = 'فشل حفظ الصورة على السيرفر (مشكلة في مسار الحفظ أو الصلاحيات).';
-        }
 
         if (empty($errors)) {
             header('Location: trainers.php?added=1');

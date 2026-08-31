@@ -25,7 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $name         = trim($_POST['name'] ?? '');
     $specialty    = trim($_POST['specialty'] ?? '');
     $phone        = trim($_POST['phone'] ?? '');
-    $experience = $_POST['experience_years'] ?? '';
+    $experience   = $_POST['experience_years'] ?? '';
     $status       = $_POST['status'] ?? 'نشط';
     $photo        = $trainer['photo']; 
 
@@ -67,31 +67,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } elseif (@getimagesize($tmpPath) === false) {
                 $errors[] = 'الملف المرفوع مش صورة صحيحة.';
             } else {
-                // استخدام مسار نسبي مباشر لتجنب أي مشاكل في الصلاحيات على سيرفرات الكلاود مثل Render
-                $uploadDir = 'assets/img/trainers/';
-
-                if (!is_dir($uploadDir)) {
-                    @mkdir($uploadDir, 0777, true);
-                }
-                @chmod($uploadDir, 0777);
-
-                // تسمية الصورة باسم نظيف وثابت يعتمد على الـ ID الخاص بالمدرب
-                $newFileName = 'trainer_' . (int) $trainer['id'] . '.' . $extension;
-
-                // مسح أي صيغ قديمة لنفس المدرب لمنع تكرار الملفات
-                foreach ($allowedExtensions as $ext) {
-                    $oldExtFile = $uploadDir . 'trainer_' . (int) $trainer['id'] . '.' . $ext;
-                    if (file_exists($oldExtFile)) {
-                        @unlink($oldExtFile);
-                    }
-                }
-
-                if (move_uploaded_file($tmpPath, $uploadDir . $newFileName)) {
-                    $oldPhoto = $trainer['photo'];
-                    $photo    = 'trainers/' . $newFileName;
-                } else {
-                    $errors[] = 'فشل حفظ الصورة على السيرفر (مشكلة في مسار الحفظ أو الصلاحيات).';
-                }
+                // تحويل الصورة الجديدة مباشرة إلى Base64 وتحديثها في قاعدة البيانات بدون أي مشاكل في الصلاحيات على Render
+                $imageData = file_get_contents($tmpPath);
+                $mimeType  = mime_content_type($tmpPath);
+                $photo     = 'data:' . $mimeType . ';base64,' . base64_encode($imageData);
             }
         }
     }
@@ -116,13 +95,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ':status'           => $status,
             ':id'               => (int) $id,
         ]);
-
-        if (isset($oldPhoto) && strpos($oldPhoto, 'trainers/') === 0) {
-            $oldPath = 'assets/img/' . $oldPhoto;
-            if (file_exists($oldPath)) {
-                @unlink($oldPath);
-            }
-        }
 
         header('Location: trainers.php?updated=1');
         exit;
@@ -263,7 +235,7 @@ require_once 'includes/sidebar.php';
             </div>
             <div class="card-body text-center">
               <img
-                src="./assets/img/<?php echo htmlspecialchars($trainer['photo']); ?>"
+                src="<?php echo !empty($trainer['photo']) ? (strpos($trainer['photo'], 'data:image') === 0 ? $trainer['photo'] : './assets/img/' . $trainer['photo']) : './assets/img/default-150x150.png'; ?>"
                 alt="صورة <?php echo htmlspecialchars($trainer['name']); ?>"
                 class="img-fluid img-circle"
                 style="width: 150px; height: 150px; object-fit: cover;"
