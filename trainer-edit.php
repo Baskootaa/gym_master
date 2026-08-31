@@ -67,8 +67,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } elseif (@getimagesize($tmpPath) === false) {
                 $errors[] = 'الملف المرفوع مش صورة صحيحة.';
             } else {
-                // استخدام مسار __DIR__ المباشر والآمن لبيئة Render لضمان عدم حدوث Permission Denied
-                $uploadDir = __DIR__ . '/assets/img/trainers/';
+                // استخدام مسار نسبي مباشر لتجنب أي مشاكل في الصلاحيات على سيرفرات الكلاود مثل Render
+                $uploadDir = 'assets/img/trainers/';
 
                 if (!is_dir($uploadDir)) {
                     @mkdir($uploadDir, 0777, true);
@@ -118,7 +118,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ]);
 
         if (isset($oldPhoto) && strpos($oldPhoto, 'trainers/') === 0) {
-            $oldPath = __DIR__ . '/assets/img/' . $oldPhoto;
+            $oldPath = 'assets/img/' . $oldPhoto;
             if (file_exists($oldPath)) {
                 @unlink($oldPath);
             }

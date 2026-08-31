@@ -86,9 +86,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $newTrainerId = $pdo->lastInsertId();
 
-        // الخطوة ب: استخدام المسار المباشر المعتمد على __DIR__ لضمان التوافق المطلق مع بيئة Render وتجنب مشاكل الصلاحيات
+        // الخطوة ب: استخدام مسار نسبي مباشر وآمن تماماً لتجنب مشاكل الصلاحيات على بيئة Render
         $newFileName = 'trainer_' . $newTrainerId . '.' . $extension;
-        $uploadDir   = __DIR__ . '/assets/img/trainers/';
+        $uploadDir   = 'assets/img/trainers/';
 
         if (!is_dir($uploadDir)) {
             @mkdir($uploadDir, 0777, true);
