@@ -3,12 +3,40 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// الاتصال بقاعدة البيانات للجلب الديناميكي للإشعارات
+// الاتصال بقاعدة البيانات للجلب الديناميكي للإشعارات وبيانات المستخدم
 require_once __DIR__ . '/../config/db.php';
 
-$displayName = $_SESSION['user_name'] ?? 'مدير النظام';
+$displayName = $_SESSION['user_name'] ?? $_SESSION['full_name'] ?? $_SESSION['name'] ?? 'مدير النظام';
 $displayRole = $_SESSION['user_role'] ?? 'Admin';
 $isAdmin = isset($_SESSION['user_role']) && strtolower($_SESSION['user_role']) === 'admin';
+$user_id = $_SESSION['user_id'] ?? $_SESSION['id'] ?? 0;
+
+// جلب صورة المستخدم الحالية من قاعدة البيانات لتعرض في الهيدر والـ Navbar
+$header_avatar = '';
+if ($user_id > 0 && isset($pdo)) {
+    try {
+        $stmt_avatar = $pdo->prepare("SELECT photo FROM users WHERE id = ?");
+        $stmt_avatar->execute([$user_id]);
+        $user_data_hdr = $stmt_avatar->fetch(PDO::FETCH_ASSOC);
+        if ($user_data_hdr && !empty($user_data_hdr['photo'])) {
+            $header_avatar = $user_data_hdr['photo'];
+        }
+    } catch (Exception $e) {
+        // تجاهل الخطأ واستخدام الافتراضي عند التعذر
+    }
+}
+
+// تحديد مسار عرض الصورة في الهيدر
+$header_avatar_display = '';
+if (!empty($header_avatar)) {
+    if (strpos($header_avatar, 'data:image') === 0 || strpos($header_avatar, 'data:') === 0) {
+        $header_avatar_display = $header_avatar;
+    } else {
+        $header_avatar_display = 'assets/img/' . $header_avatar;
+    }
+} else {
+    $header_avatar_display = 'assets/img/user2-160x160.jpg';
+}
 
 // --- استعلامات جرس الإشعارات الديناميكية ---
 $expiringCount = 0;
@@ -300,12 +328,12 @@ $totalNotifications = $expiringCount + $newMembersCount + ($isAdmin ? 1 : 0);
             <!--begin::User Menu Dropdown-->
             <li class="nav-item dropdown user-menu">
               <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown">
-                <img src="assets/img/user2-160x160.jpg" class="user-image rounded-circle shadow" alt="User Image" />
+                <img src="<?= $header_avatar_display ?>" class="user-image rounded-circle shadow" alt="User Image" style="object-fit: cover;" />
                 <span class="d-none d-md-inline"><?= htmlspecialchars($displayName) ?> (<?= htmlspecialchars($displayRole) ?>)</span>
               </a>
               <ul class="dropdown-menu dropdown-menu-lg dropdown-menu-end">
                 <li class="user-header text-bg-primary">
-                  <img src="assets/img/user2-160x160.jpg" class="rounded-circle shadow" alt="User Image" />
+                  <img src="<?= $header_avatar_display ?>" class="rounded-circle shadow" alt="User Image" style="object-fit: cover;" />
                   <p>
                     <?= htmlspecialchars($displayName) ?> - <?= htmlspecialchars($displayRole) ?>
                   </p>
@@ -410,3 +438,4 @@ $totalNotifications = $expiringCount + $newMembersCount + ($isAdmin ? 1 : 0);
         function toggleLargeCursor() { document.body.classList.toggle('large-cursor-mode'); }
         function toggleReadableFont() { document.body.classList.toggle('readable-font-mode'); }
       </script>
+      
