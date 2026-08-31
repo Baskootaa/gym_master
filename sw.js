@@ -33,11 +33,18 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// جلب الملفات: استثناء تام لصفحات الـ PHP لتأخذ بياناتها حية من السيرفر دائماً
+// جلب الملفات: استثناء تام لصفحات الـ PHP وروابط الـ Base64 (data:)
 self.addEventListener('fetch', (event) => {
-  const url = new URL(event.request.url);
+  const requestUrl = event.request.url;
   
-  // إذا كانت الصفحة PHP، لا تقم بعمل كاش لها ووجه الطلب للسيرفر مباشرة لتحديث البيانات
+  // تجاهل أي طلب لا يبدأ بـ http أو https (مثل روابط data:image للصور المخزنة كـ Base64)
+  if (!requestUrl.startsWith('http')) {
+    return;
+  }
+
+  const url = new URL(requestUrl);
+  
+  // إذا كانت الصفحة PHP أو الطلب ليس GET، وجه الطلب للسيرفر مباشرة لتحديث البيانات
   if (url.pathname.endsWith('.php') || event.request.method !== 'GET') {
     event.respondWith(fetch(event.request));
     return;
