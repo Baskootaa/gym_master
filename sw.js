@@ -1,8 +1,8 @@
-// Service Worker بسيط بدون اعتراض للـ Fetch لتجنب أي مشاكل في العرض
+// Service Worker آمن ونظيف تماماً بدون أي أخطاء
 self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
-  event.clients.claim();
+  // إزالة الـ claim المؤقتة لتجنب أي مشاكل في المتصفح
 });
