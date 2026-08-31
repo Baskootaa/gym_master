@@ -91,11 +91,10 @@ $trainers = $stmt->fetchAll();
                 <div class="text-center">
                   <?php 
                     $trainerPhoto = $trainer['photo'] ?? '';
-                    // إذا كانت الصورة مخزنة كمسار عادي أو اسم ملف
+                    // فحص إذا كانت الصورة مسار ملف عادي وليست Base64 تالفة
                     if (!empty($trainerPhoto) && strpos($trainerPhoto, 'data:image') === false) {
                         $trainerImageSrc = BASE_URL . 'assets/img/' . $trainerPhoto;
                     } else {
-                        // صورة افتراضية في حال كانت فارغة أو تحتوي على كود قديم
                         $trainerImageSrc = BASE_URL . 'assets/img/default-150x150.png';
                     }
                   ?>

@@ -20,11 +20,11 @@ $photo  = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-    $name       = trim($_POST['name'] ?? '');
-    $specialty  = trim($_POST['specialty'] ?? '');
-    $phone      = trim($_POST['phone'] ?? '');
-    $experience = $_POST['experience_years'] ?? '';
-    $status     = $_POST['status'] ?? 'نشط';
+    $name         = trim($_POST['name'] ?? '');
+    $specialty    = trim($_POST['specialty'] ?? '');
+    $phone        = trim($_POST['phone'] ?? '');
+    $experience   = $_POST['experience_years'] ?? '';
+    $status       = $_POST['status'] ?? 'نشط';
 
     if ($name === '') {
         $errors[] = 'اسم المدرب مطلوب.';
@@ -47,9 +47,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $allowedExtensions = ['jpg', 'jpeg', 'png', 'webp'];
     $maxSizeBytes       = 2 * 1024 * 1024; // 2 ميجا
 
-    $tmpPath      = '';
-    $extension    = '';
-
     if (!isset($_FILES['photo']) || $_FILES['photo']['error'] === UPLOAD_ERR_NO_FILE) {
         $errors[] = 'لازم ترفع صورة للمدرب.';
     } elseif ($_FILES['photo']['error'] !== UPLOAD_ERR_OK) {
@@ -67,7 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif (@getimagesize($tmpPath) === false) {
             $errors[] = 'الملف المرفوع مش صورة صحيحة.';
         } else {
-            // تحويل الصورة مباشرة إلى Base64 لتخزينها في قاعدة البيانات بدون أي مشاكل في الصلاحيات على Render
+            // تحويل الصورة بالكامل إلى Base64 سليمة ومتكاملة
             $imageData = file_get_contents($tmpPath);
             $mimeType  = mime_content_type($tmpPath);
             $photo     = 'data:' . $mimeType . ';base64,' . base64_encode($imageData);
@@ -75,7 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (empty($errors)) {
-        // إدخال بيانات المدرب مع صورة الـ Base64 مباشرة في قاعدة البيانات
+        // إدخال بيانات المدرب مع صورة الـ Base64 في قاعدة البيانات
         $sql = 'INSERT INTO trainers (name, specialty, phone, experience_years, photo, status)
                 VALUES (:name, :specialty, :phone, :experience_years, :photo, :status)';
 
@@ -89,10 +86,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ':status'           => $status,
         ]);
 
-        if (empty($errors)) {
-            header('Location: trainers.php?added=1');
-            exit;
-        }
+        header('Location: trainers.php?added=1');
+        exit;
     }
 }
 

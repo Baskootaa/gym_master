@@ -1,7 +1,13 @@
 <?php
-$active_page = 'trainers';
-require_once 'config/db.php';
 
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+require_once 'config/db.php';
+checkAccess(['admin', 'staff']);
+
+$active_page = 'trainers';
 $errors = [];
 
 $id = $_GET['id'] ?? $_POST['id'] ?? null;
@@ -48,7 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     $allowedExtensions = ['jpg', 'jpeg', 'png', 'webp'];
-    $maxSizeBytes        = 2 * 1024 * 1024;
+    $maxSizeBytes         = 2 * 1024 * 1024;
 
     if (isset($_FILES['photo']) && $_FILES['photo']['error'] !== UPLOAD_ERR_NO_FILE) {
 
@@ -67,7 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } elseif (@getimagesize($tmpPath) === false) {
                 $errors[] = 'الملف المرفوع مش صورة صحيحة.';
             } else {
-                // تحويل الصورة الجديدة مباشرة إلى Base64 وتحديثها في قاعدة البيانات بدون أي مشاكل في الصلاحيات على Render
+                // تحويل الصورة الجديدة إلى Base64 سليمة ومتكاملة
                 $imageData = file_get_contents($tmpPath);
                 $mimeType  = mime_content_type($tmpPath);
                 $photo     = 'data:' . $mimeType . ';base64,' . base64_encode($imageData);
