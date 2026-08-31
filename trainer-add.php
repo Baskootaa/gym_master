@@ -80,18 +80,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ':specialty'        => $specialty,
             ':phone'            => $phone,
             ':experience_years' => (int) $experience,
-            ':photo'            => '', // قيمة مؤقتة مؤقتاً لحين حفظ الصورة بالـ ID
+            ':photo'            => '', // قيمة مؤقتة لحين حفظ الصورة بالـ ID
             ':status'           => $status,
         ]);
 
         $newTrainerId = $pdo->lastInsertId();
 
-        // الخطوة ب: تسمية الصورة الحقيقية بناءً على الـ ID الفعلي للمدرب
+        // الخطوة ب: استخدام المسار المطلق الصحيح لبيئة Render والسيرفرات لمنع مشاكل الصلاحيات
         $newFileName = 'trainer_' . $newTrainerId . '.' . $extension;
-        $uploadDir   = __DIR__ . '/assets/img/trainers/';
+        $uploadDir   = rtrim($_SERVER['DOCUMENT_ROOT'], '/') . '/assets/img/trainers/';
 
         if (!is_dir($uploadDir)) {
-            mkdir($uploadDir, 0755, true);
+            @mkdir($uploadDir, 0755, true);
         }
 
         if (move_uploaded_file($tmpPath, $uploadDir . $newFileName)) {
@@ -104,7 +104,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ':id'    => $newTrainerId
             ]);
         } else {
-            // لو فشل رفع الصورة، ممكن نلغي المدرب أو نترك حقل الصورة فارغ، بس هنا بنسجل الخطأ لو حبينا أو بنعدلها
             $errors[] = 'فشل حفظ الصورة على السيرفر.';
         }
 
