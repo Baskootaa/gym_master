@@ -21,53 +21,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
     
     $avatar_base64 = null;
 
-    // معالجة رفع الصورة وتصغير حجمها لتجنب مشاكل الـ Base64 الطويل جداً في المتصفح
+    // معالجة رفع الصورة وتحويلها إلى Base64 مثل صفحة المدربين تماماً
     if (isset($_FILES['avatar']) && $_FILES['avatar']['error'] === UPLOAD_ERR_OK) {
         $fileTmpPath   = $_FILES['avatar']['tmp_name'];
         $fileName      = $_FILES['avatar']['name'];
         $fileExtension = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
         
-        $allowedExtensions = ['jpg', 'jpeg', 'png', 'webp'];
+        $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
         
         if (in_array($fileExtension, $allowedExtensions)) {
-            // تصغير أبعاد الصورة وضغطها لتوليد Base64 بحجم آمن وصغير يقبله المتصفح
-            list($width, $height) = getimagesize($fileTmpPath);
-            $newWidth = 150;
-            $newHeight = 150;
-            
-            $imageP = imagecreatetruecolor($newWidth, $newHeight);
-            
-            if ($fileExtension == 'png') {
-                $image = imagecreatefrompng($fileTmpPath);
-                imagealphablending($imageP, false);
-                imagesavealpha($imageP, true);
-            } elseif ($fileExtension == 'webp') {
-                $image = imagecreatefromwebp($fileTmpPath);
-            } else {
-                $image = imagecreatefromjpeg($fileTmpPath);
-            }
-            
-            if ($image) {
-                imagecopyresampled($imageP, $image, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
-                
-                ob_start();
-                if ($fileExtension == 'png') {
-                    imagepng($imageP, null, 6);
-                    $mimeType = 'image/png';
-                } elseif ($fileExtension == 'webp') {
-                    imagewebp($imageP, null, 75);
-                    $mimeType = 'image/webp';
-                } else {
-                    imagejpeg($imageP, null, 75);
-                    $mimeType = 'image/jpeg';
-                }
-                $imageData = ob_get_clean();
-                
-                $avatar_base64 = 'data:' . $mimeType . ';base64,' . base64_encode($imageData);
-                
-                imagedestroy($image);
-                imagedestroy($imageP);
-            }
+            $imageData = file_get_contents($fileTmpPath);
+            $mimeType  = mime_content_type($fileTmpPath);
+            $avatar_base64 = 'data:' . $mimeType . ';base64,' . base64_encode($imageData);
         }
     }
 
@@ -171,17 +136,8 @@ $current_email = $user['email'] ?? $_SESSION['email'] ?? '';
 $current_phone = $user['phone'] ?? $user['mobile'] ?? $user['telephone'] ?? '';
 $current_avatar_db = $user['photo'] ?? $user['avatar'] ?? $_SESSION['avatar'] ?? $_SESSION['photo'] ?? '';
 
-// تجهيز مسار وعرض الصورة تماماً مثل صفحة المدربين
-$current_avatar_display = '';
-if (!empty($current_avatar_db)) {
-    if (strpos($current_avatar_db, 'data:image') === 0) {
-        $current_avatar_display = $current_avatar_db; // عرض Base64 مباشرة
-    } else {
-        $current_avatar_display = BASE_URL . 'assets/img/' . $current_avatar_db;
-    }
-} else {
-    $current_avatar_display = BASE_URL . 'assets/img/user2-160x160.jpg';
-}
+// تجهيز مسار وعرض الصورة في صفحة البروفايل بطريقة آمنة تماماً
+$current_avatar_display = BASE_URL . 'assets/img/user2-160x160.jpg';
 
 require_once __DIR__ . '/includes/header.php';
 require_once __DIR__ . '/includes/sidebar.php';
