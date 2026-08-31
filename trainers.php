@@ -91,16 +91,20 @@ $trainers = $stmt->fetchAll();
                 <div class="text-center">
                   <?php 
                     $trainerPhoto = $trainer['photo'] ?? '';
-                    // فحص إذا كانت الصورة مسار ملف عادي وليست Base64 تالفة
-                    if (!empty($trainerPhoto) && strpos($trainerPhoto, 'data:image') === false) {
-                        $trainerImageSrc = BASE_URL . 'assets/img/' . $trainerPhoto;
+                    // فحص ما إذا كانت الصورة مخزنة كـ Base64 أو مسار ملف عادي
+                    if (!empty($trainerPhoto)) {
+                        if (strpos($trainerPhoto, 'data:image') === 0) {
+                            $trainerImageSrc = $trainerPhoto; // عرض Base64 مباشرة
+                        } else {
+                            $trainerImageSrc = BASE_URL . 'assets/img/' . $trainerPhoto;
+                        }
                     } else {
                         $trainerImageSrc = BASE_URL . 'assets/img/default-150x150.png';
                     }
                   ?>
                   <img
                     class="profile-user-img img-fluid img-circle"
-                    src="<?php echo $trainerImageSrc; ?>?v=<?php echo time(); ?>"
+                    src="<?php echo $trainerImageSrc; ?>"
                     alt="صورة <?php echo htmlspecialchars($trainer['name'] ?? ''); ?>"
                     style="width: 100px; height: 100px; object-fit: cover;"
                   />
