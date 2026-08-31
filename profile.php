@@ -21,7 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
     
     $avatar_base64 = null;
 
-    // معالجة رفع الصورة وتحويلها إلى Base64 مثل صفحة المدربين تماماً
+    // معالجة رفع الصورة الشخصية وتحويلها إلى Base64
     if (isset($_FILES['avatar']) && $_FILES['avatar']['error'] === UPLOAD_ERR_OK) {
         $fileTmpPath   = $_FILES['avatar']['tmp_name'];
         $fileName      = $_FILES['avatar']['name'];
@@ -130,14 +130,23 @@ try {
     $user = [];
 }
 
-// تحديد القيم الحالية من الحقول المتاحة (دعم عمود photo أو avatar)
+// تحديد القيم الحالية من الحقول المتاحة
 $current_name = $user['full_name'] ?? $user['name'] ?? $_SESSION['full_name'] ?? $_SESSION['name'] ?? '';
 $current_email = $user['email'] ?? $_SESSION['email'] ?? '';
 $current_phone = $user['phone'] ?? $user['mobile'] ?? $user['telephone'] ?? '';
 $current_avatar_db = $user['photo'] ?? $user['avatar'] ?? $_SESSION['avatar'] ?? $_SESSION['photo'] ?? '';
 
-// تجهيز مسار وعرض الصورة في صفحة البروفايل بطريقة آمنة تماماً
-$current_avatar_display = BASE_URL . 'assets/img/user2-160x160.jpg';
+// تجهيز عرض الصورة الحقيقية للمستخدم في البروفايل والهيدر بذكاء
+$current_avatar_display = '';
+if (!empty($current_avatar_db)) {
+    if (strpos($current_avatar_db, 'data:image') === 0) {
+        $current_avatar_display = $current_avatar_db;
+    } else {
+        $current_avatar_display = BASE_URL . 'assets/img/' . $current_avatar_db;
+    }
+} else {
+    $current_avatar_display = BASE_URL . 'assets/img/user2-160x160.jpg';
+}
 
 require_once __DIR__ . '/includes/header.php';
 require_once __DIR__ . '/includes/sidebar.php';
