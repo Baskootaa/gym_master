@@ -86,13 +86,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $newTrainerId = $pdo->lastInsertId();
 
-        // الخطوة ب: استخدام المسار المطلق الصحيح لبيئة Render والسيرفرات لمنع مشاكل الصلاحيات
+        // الخطوة ب: استخدام المسار المباشر المعتمد على __DIR__ لضمان التوافق المطلق مع بيئة Render وتجنب مشاكل الصلاحيات
         $newFileName = 'trainer_' . $newTrainerId . '.' . $extension;
-        $uploadDir   = rtrim($_SERVER['DOCUMENT_ROOT'], '/') . '/assets/img/trainers/';
+        $uploadDir   = __DIR__ . '/assets/img/trainers/';
 
         if (!is_dir($uploadDir)) {
-            @mkdir($uploadDir, 0755, true);
+            @mkdir($uploadDir, 0777, true);
         }
+        @chmod($uploadDir, 0777);
 
         if (move_uploaded_file($tmpPath, $uploadDir . $newFileName)) {
             $photo = 'trainers/' . $newFileName;
@@ -104,7 +105,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ':id'    => $newTrainerId
             ]);
         } else {
-            $errors[] = 'فشل حفظ الصورة على السيرفر.';
+            $errors[] = 'فشل حفظ الصورة على السيرفر (مشكلة في مسار الحفظ أو الصلاحيات).';
         }
 
         if (empty($errors)) {

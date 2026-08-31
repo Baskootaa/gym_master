@@ -67,12 +67,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } elseif (@getimagesize($tmpPath) === false) {
                 $errors[] = 'الملف المرفوع مش صورة صحيحة.';
             } else {
-                // استخدام مسار مطلق صحيح ومتوافق مع بيئة السيرفر و Render لمنع مشاكل الصلاحيات
-                $uploadDir = rtrim($_SERVER['DOCUMENT_ROOT'], '/') . '/assets/img/trainers/';
+                // استخدام مسار __DIR__ المباشر والآمن لبيئة Render لضمان عدم حدوث Permission Denied
+                $uploadDir = __DIR__ . '/assets/img/trainers/';
 
                 if (!is_dir($uploadDir)) {
-                    @mkdir($uploadDir, 0755, true);
+                    @mkdir($uploadDir, 0777, true);
                 }
+                @chmod($uploadDir, 0777);
 
                 // تسمية الصورة باسم نظيف وثابت يعتمد على الـ ID الخاص بالمدرب
                 $newFileName = 'trainer_' . (int) $trainer['id'] . '.' . $extension;
@@ -89,18 +90,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $oldPhoto = $trainer['photo'];
                     $photo    = 'trainers/' . $newFileName;
                 } else {
-                    $phpFileUploadErrors = array(
-                        0 => 'There is no error, the file uploaded with success',
-                        1 => 'The uploaded file exceeds the upload_max_filesize directive in php.ini',
-                        2 => 'The uploaded file exceeds the MAX_FILE_SIZE directive that was specified in the HTML form',
-                        3 => 'The uploaded file was only partially uploaded',
-                        4 => 'No file was uploaded',
-                        6 => 'Missing a temporary folder',
-                        7 => 'Failed to write file to disk.',
-                        8 => 'A PHP extension stopped the file upload.'
-                    );
-                    $errorCode = $_FILES['photo']['error'];
-                    $errors[] = 'فشل حفظ الصورة. تفاصيل الخطأ: ' . ($phpFileUploadErrors[$errorCode] ?? 'Unknown error');
+                    $errors[] = 'فشل حفظ الصورة على السيرفر (مشكلة في مسار الحفظ أو الصلاحيات).';
                 }
             }
         }
@@ -128,7 +118,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ]);
 
         if (isset($oldPhoto) && strpos($oldPhoto, 'trainers/') === 0) {
-            $oldPath = rtrim($_SERVER['DOCUMENT_ROOT'], '/') . '/assets/img/' . $oldPhoto;
+            $oldPath = __DIR__ . '/assets/img/' . $oldPhoto;
             if (file_exists($oldPath)) {
                 @unlink($oldPath);
             }
