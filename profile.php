@@ -19,9 +19,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
     $phone    = trim($_POST['phone'] ?? '');
     $password = $_POST['password'] ?? '';
     
-    $avatar_db_value = null;
+    $avatar_base64 = null;
 
-    // معالجة رفع الصورة وحفظها مباشرة داخل مجلد avatars
+    // معالجة رفع الصورة الشخصية وتحويلها إلى Base64 لتجنب مشاكل الصلاحيات على السيرفرات السحابية
     if (isset($_FILES['avatar']) && $_FILES['avatar']['error'] === UPLOAD_ERR_OK) {
         $fileTmpPath   = $_FILES['avatar']['tmp_name'];
         $fileName      = $_FILES['avatar']['name'];
@@ -30,40 +30,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
         $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
         
         if (in_array($fileExtension, $allowedExtensions)) {
-            $newFileName = 'user_' . $user_id . '_' . time() . '.' . $fileExtension;
-            
-            // تحديد مسار مجلد avatars بدقة
-            $uploadFileDir = __DIR__ . '/assets/img/avatars/';
-            
-            if (!is_dir($uploadFileDir)) {
-                mkdir($uploadFileDir, 0755, true);
-            }
-            
-            $dest_path = $uploadFileDir . $newFileName;
-            
-            if (move_uploaded_file($fileTmpPath, $dest_path)) {
-                // تخزين مسار الملف النسبي أو اسم الملف في قاعدة البيانات
-                $avatar_db_value = 'avatars/' . $newFileName;
-            }
+            $imageData = file_get_contents($fileTmpPath);
+            $mimeType  = mime_content_type($fileTmpPath);
+            $avatar_base64 = 'data:' . $mimeType . ';base64,' . base64_encode($imageData);
         }
     }
 
     if (!empty($name) && !empty($email) && $user_id > 0) {
         try {
+            // التحقق مما إذا كان سيتم تحديث كلمة المرور وصورة البروفايل أم لا
             if (!empty($password)) {
                 $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
                 
-                if ($avatar_db_value !== null) {
+                if ($avatar_base64 !== null) {
                     try {
                         $stmt = $pdo->prepare("UPDATE users SET full_name = ?, email = ?, phone = ?, password = ?, photo = ? WHERE id = ?");
-                        $stmt->execute([$name, $email, $phone, $hashedPassword, $avatar_db_value, $user_id]);
+                        $stmt->execute([$name, $email, $phone, $hashedPassword, $avatar_base64, $user_id]);
                     } catch (Exception $ex) {
                         try {
                             $stmt = $pdo->prepare("UPDATE users SET name = ?, email = ?, phone = ?, password = ?, photo = ? WHERE id = ?");
-                            $stmt->execute([$name, $email, $phone, $hashedPassword, $avatar_db_value, $user_id]);
+                            $stmt->execute([$name, $email, $phone, $hashedPassword, $avatar_base64, $user_id]);
                         } catch (Exception $e2) {
                             $stmt = $pdo->prepare("UPDATE users SET full_name = ?, email = ?, password = ?, photo = ? WHERE id = ?");
-                            $stmt->execute([$name, $email, $hashedPassword, $avatar_db_value, $user_id]);
+                            $stmt->execute([$name, $email, $hashedPassword, $avatar_base64, $user_id]);
                         }
                     }
                 } else {
@@ -81,17 +70,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
                     }
                 }
             } else {
-                if ($avatar_db_value !== null) {
+                if ($avatar_base64 !== null) {
                     try {
                         $stmt = $pdo->prepare("UPDATE users SET full_name = ?, email = ?, phone = ?, photo = ? WHERE id = ?");
-                        $stmt->execute([$name, $email, $phone, $avatar_db_value, $user_id]);
+                        $stmt->execute([$name, $email, $phone, $avatar_base64, $user_id]);
                     } catch (Exception $ex) {
                         try {
                             $stmt = $pdo->prepare("UPDATE users SET name = ?, email = ?, phone = ?, photo = ? WHERE id = ?");
-                            $stmt->execute([$name, $email, $phone, $avatar_db_value, $user_id]);
+                            $stmt->execute([$name, $email, $phone, $avatar_base64, $user_id]);
                         } catch (Exception $e2) {
                             $stmt = $pdo->prepare("UPDATE users SET full_name = ?, email = ?, photo = ? WHERE id = ?");
-                            $stmt->execute([$name, $email, $avatar_db_value, $user_id]);
+                            $stmt->execute([$name, $email, $avatar_base64, $user_id]);
                         }
                     }
                 } else {
@@ -110,14 +99,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
                 }
             }
 
-            // تحديث قيم الجلسة فوراً
+            // تحديث قيم الجلسة فوراً لتنعكس في الهيدر والقوائم
             if (isset($_SESSION['full_name'])) $_SESSION['full_name'] = $name;
             if (isset($_SESSION['name'])) $_SESSION['name'] = $name;
             if (isset($_SESSION['user_name'])) $_SESSION['user_name'] = $name;
             $_SESSION['email'] = $email;
-            if ($avatar_db_value !== null) {
-                $_SESSION['avatar'] = $avatar_db_value;
-                $_SESSION['photo'] = $avatar_db_value;
+            if ($avatar_base64 !== null) {
+                $_SESSION['avatar'] = $avatar_base64;
+                $_SESSION['photo'] = $avatar_base64;
             }
 
             $message = "تم تحديث البيانات الشخصية بنجاح!";
@@ -132,7 +121,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
     }
 }
 
-// جلب بيانات المستخدم الحالية
+// جلب بيانات المستخدم الحالية لعرضها في مدخلات الفورم
 try {
     $stmt = $pdo->prepare("SELECT * FROM users WHERE id = ?");
     $stmt->execute([$user_id]);
@@ -141,18 +130,17 @@ try {
     $user = [];
 }
 
+// تحديد القيم الحالية من الحقول المتاحة (دعم عمود photo أو avatar)
 $current_name = $user['full_name'] ?? $user['name'] ?? $_SESSION['full_name'] ?? $_SESSION['name'] ?? '';
 $current_email = $user['email'] ?? $_SESSION['email'] ?? '';
 $current_phone = $user['phone'] ?? $user['mobile'] ?? $user['telephone'] ?? '';
 $current_avatar_db = $user['photo'] ?? $user['avatar'] ?? $_SESSION['avatar'] ?? $_SESSION['photo'] ?? '';
 
-// تجهيز مسار العرض من مجلد avatars
+// تجهيز مسار وعرض الصورة بشكل مباشر وسليم
 $current_avatar_display = '';
 if (!empty($current_avatar_db)) {
-    if (strpos($current_avatar_db, 'data:image') === 0) {
-        $current_avatar_display = $current_avatar_db; // توافق مع البيانات القديمة إن وجدت
-    } elseif (strpos($current_avatar_db, 'assets/img/') === 0) {
-        $current_avatar_display = BASE_URL . $current_avatar_db;
+    if (strpos($current_avatar_db, 'data:image') === 0 || strpos($current_avatar_db, 'data:') === 0) {
+        $current_avatar_display = $current_avatar_db;
     } else {
         $current_avatar_display = BASE_URL . 'assets/img/' . $current_avatar_db;
     }
@@ -209,7 +197,7 @@ require_once __DIR__ . '/includes/sidebar.php';
                                     <?php if (!empty($current_avatar_display)): ?>
                                         <div class="mt-2">
                                             <small class="text-muted">الصورة الحالية:</small><br>
-                                            <img src="<?= htmlspecialchars($current_avatar_display) ?>?v=<?php echo time(); ?>" alt="Avatar" class="rounded-circle mt-1" width="60" height="60" style="object-fit: cover;">
+                                            <img src="<?= $current_avatar_display ?>?v=<?php echo time(); ?>" alt="Avatar" class="rounded-circle mt-1" width="60" height="60" style="object-fit: cover;">
                                         </div>
                                     <?php endif; ?>
                                 </div>
