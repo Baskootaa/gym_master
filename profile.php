@@ -9,10 +9,8 @@ require_once __DIR__ . '/includes/auth_check.php';
 $message = '';
 $messageType = '';
 
-// جلب معرف المستخدم الحالي من الجلسة
 $user_id = $_SESSION['user_id'] ?? $_SESSION['id'] ?? 0;
 
-// معالجة تحديث البيانات عند إرسال الفورم (POST)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
     $name     = trim($_POST['name'] ?? '');
     $email    = trim($_POST['email'] ?? '');
@@ -21,7 +19,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
     
     $avatar_base64 = null;
 
-    // معالجة رفع الصورة الشخصية وتحويلها إلى Base64 لتجنب مشاكل الصلاحيات على السيرفرات السحابية
     if (isset($_FILES['avatar']) && $_FILES['avatar']['error'] === UPLOAD_ERR_OK) {
         $fileTmpPath   = $_FILES['avatar']['tmp_name'];
         $fileName      = $_FILES['avatar']['name'];
@@ -38,71 +35,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
 
     if (!empty($name) && !empty($email) && $user_id > 0) {
         try {
-            // التحقق مما إذا كان سيتم تحديث كلمة المرور وصورة البروفايل أم لا
             if (!empty($password)) {
                 $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
                 
                 if ($avatar_base64 !== null) {
-                    try {
-                        $stmt = $pdo->prepare("UPDATE users SET full_name = ?, email = ?, phone = ?, password = ?, photo = ? WHERE id = ?");
-                        $stmt->execute([$name, $email, $phone, $hashedPassword, $avatar_base64, $user_id]);
-                    } catch (Exception $ex) {
-                        try {
-                            $stmt = $pdo->prepare("UPDATE users SET name = ?, email = ?, phone = ?, password = ?, photo = ? WHERE id = ?");
-                            $stmt->execute([$name, $email, $phone, $hashedPassword, $avatar_base64, $user_id]);
-                        } catch (Exception $e2) {
-                            $stmt = $pdo->prepare("UPDATE users SET full_name = ?, email = ?, password = ?, photo = ? WHERE id = ?");
-                            $stmt->execute([$name, $email, $hashedPassword, $avatar_base64, $user_id]);
-                        }
-                    }
+                    $stmt = $pdo->prepare("UPDATE users SET full_name = ?, email = ?, phone = ?, password = ?, photo = ? WHERE id = ?");
+                    $stmt->execute([$name, $email, $phone, $hashedPassword, $avatar_base64, $user_id]);
                 } else {
-                    try {
-                        $stmt = $pdo->prepare("UPDATE users SET full_name = ?, email = ?, phone = ?, password = ? WHERE id = ?");
-                        $stmt->execute([$name, $email, $phone, $hashedPassword, $user_id]);
-                    } catch (Exception $ex) {
-                        try {
-                            $stmt = $pdo->prepare("UPDATE users SET name = ?, email = ?, phone = ?, password = ? WHERE id = ?");
-                            $stmt->execute([$name, $email, $phone, $hashedPassword, $user_id]);
-                        } catch (Exception $e2) {
-                            $stmt = $pdo->prepare("UPDATE users SET full_name = ?, email = ?, password = ? WHERE id = ?");
-                            $stmt->execute([$name, $email, $hashedPassword, $user_id]);
-                        }
-                    }
+                    $stmt = $pdo->prepare("UPDATE users SET full_name = ?, email = ?, phone = ?, password = ? WHERE id = ?");
+                    $stmt->execute([$name, $email, $phone, $hashedPassword, $user_id]);
                 }
             } else {
                 if ($avatar_base64 !== null) {
-                    try {
-                        $stmt = $pdo->prepare("UPDATE users SET full_name = ?, email = ?, phone = ?, photo = ? WHERE id = ?");
-                        $stmt->execute([$name, $email, $phone, $avatar_base64, $user_id]);
-                    } catch (Exception $ex) {
-                        try {
-                            $stmt = $pdo->prepare("UPDATE users SET name = ?, email = ?, phone = ?, photo = ? WHERE id = ?");
-                            $stmt->execute([$name, $email, $phone, $avatar_base64, $user_id]);
-                        } catch (Exception $e2) {
-                            $stmt = $pdo->prepare("UPDATE users SET full_name = ?, email = ?, photo = ? WHERE id = ?");
-                            $stmt->execute([$name, $email, $avatar_base64, $user_id]);
-                        }
-                    }
+                    $stmt = $pdo->prepare("UPDATE users SET full_name = ?, email = ?, phone = ?, photo = ? WHERE id = ?");
+                    $stmt->execute([$name, $email, $phone, $avatar_base64, $user_id]);
                 } else {
-                    try {
-                        $stmt = $pdo->prepare("UPDATE users SET full_name = ?, email = ?, phone = ? WHERE id = ?");
-                        $stmt->execute([$name, $email, $phone, $user_id]);
-                    } catch (Exception $ex) {
-                        try {
-                            $stmt = $pdo->prepare("UPDATE users SET name = ?, email = ?, phone = ? WHERE id = ?");
-                            $stmt->execute([$name, $email, $phone, $user_id]);
-                        } catch (Exception $e2) {
-                            $stmt = $pdo->prepare("UPDATE users SET full_name = ?, email = ? WHERE id = ?");
-                            $stmt->execute([$name, $email, $user_id]);
-                        }
-                    }
+                    $stmt = $pdo->prepare("UPDATE users SET full_name = ?, email = ?, phone = ? WHERE id = ?");
+                    $stmt->execute([$name, $email, $phone, $user_id]);
                 }
             }
 
-            // تحديث قيم الجلسة فوراً لتنعكس في الهيدر والقوائم
             if (isset($_SESSION['full_name'])) $_SESSION['full_name'] = $name;
             if (isset($_SESSION['name'])) $_SESSION['name'] = $name;
-            if (isset($_SESSION['user_name'])) $_SESSION['user_name'] = $name;
             $_SESSION['email'] = $email;
             if ($avatar_base64 !== null) {
                 $_SESSION['avatar'] = $avatar_base64;
@@ -121,7 +75,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
     }
 }
 
-// جلب بيانات المستخدم الحالية لعرضها في مدخلات الفورم
 try {
     $stmt = $pdo->prepare("SELECT * FROM users WHERE id = ?");
     $stmt->execute([$user_id]);
@@ -130,13 +83,12 @@ try {
     $user = [];
 }
 
-// تحديد القيم الحالية من الحقول المتاحة (دعم عمود photo أو avatar)
 $current_name = $user['full_name'] ?? $user['name'] ?? $_SESSION['full_name'] ?? $_SESSION['name'] ?? '';
 $current_email = $user['email'] ?? $_SESSION['email'] ?? '';
 $current_phone = $user['phone'] ?? $user['mobile'] ?? $user['telephone'] ?? '';
 $current_avatar_db = $user['photo'] ?? $user['avatar'] ?? $_SESSION['avatar'] ?? $_SESSION['photo'] ?? '';
 
-// تجهيز مسار وعرض الصورة بشكل مباشر وسليم
+// تجهيز عرض الصورة بطريقة آمنة تماماً لتجنب أي مشاكل في الـ URL
 $current_avatar_display = '';
 if (!empty($current_avatar_db)) {
     if (strpos($current_avatar_db, 'data:image') === 0 || strpos($current_avatar_db, 'data:') === 0) {
@@ -194,12 +146,10 @@ require_once __DIR__ . '/includes/sidebar.php';
                                 <div class="mb-3">
                                     <label class="form-label fw-bold">الصورة الشخصية (اختياري)</label>
                                     <input type="file" name="avatar" class="form-control" accept="image/*">
-                                    <?php if (!empty($current_avatar_display)): ?>
-                                        <div class="mt-2">
-                                            <small class="text-muted">الصورة الحالية:</small><br>
-                                            <img src="<?= $current_avatar_display ?>?v=<?php echo time(); ?>" alt="Avatar" class="rounded-circle mt-1" width="60" height="60" style="object-fit: cover;">
-                                        </div>
-                                    <?php endif; ?>
+                                    <div class="mt-2">
+                                        <small class="text-muted">الصورة الحالية:</small><br>
+                                        <img src="<?= $current_avatar_display; ?>?v=<?php echo time(); ?>" alt="Avatar" class="rounded-circle mt-1" width="60" height="60" style="object-fit: cover;">
+                                    </div>
                                 </div>
 
                                 <div class="mb-4">
