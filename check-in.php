@@ -1,4 +1,7 @@
 <?php
+// ضبط المنطقة الزمنية للقاهرة مباشرة لضمان مطابقة التوقيت المحلي
+date_default_timezone_set('Africa/Cairo');
+
 require_once 'includes/auth_check.php';
 require_once 'config/db.php';
 
@@ -13,9 +16,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($member_id <= 0) {
             $errors[] = 'من فضلك اختار عضو';
         } else {
-            // إضافة الوقت الحالي صراحة باستخدام NOW() لضمان عدم حفظه كـ NULL
-            $stmt = $pdo->prepare('INSERT INTO check_ins (member_id, check_in_time) VALUES (:member_id, NOW())');
-            $stmt->execute(['member_id' => $member_id]);
+            // توليد الوقت المحلي الصحيح لمصر وإدخاله مباشرة لمنع أي تفاوت بالساعات
+            $current_time = date('Y-m-d H:i:s');
+            $stmt = $pdo->prepare('INSERT INTO check_ins (member_id, check_in_time) VALUES (:member_id, :check_in_time)');
+            $stmt->execute([
+                'member_id' => $member_id,
+                'check_in_time' => $current_time
+            ]);
             $success = true;
         }
     }
