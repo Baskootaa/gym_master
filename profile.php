@@ -9,8 +9,36 @@ require_once __DIR__ . '/includes/auth_check.php';
 $message = '';
 $messageType = '';
 
-// جلب معرف المستخدم الحالي من الجلسة بأمان تام
-$user_id = $_SESSION['user_id'] ?? $_SESSION['id'] ?? 0;
+// جلب معرف المستخدم الحالي من الجلسة بكافة الاحتمالات الممكنة لضمان عدم وصوله للصفر نهائياً
+$user_id = 0;
+if (!empty($_SESSION['user_id'])) {
+    $user_id = $_SESSION['user_id'];
+} elseif (!empty($_SESSION['id'])) {
+    $user_id = $_SESSION['id'];
+} elseif (!empty($_SESSION['user_id'])) {
+    $user_id = $_SESSION['user_id'];
+}
+
+// حماية إضافية ذكية: لو الـ user_id بـ 0 والإيميل موجود في الجلسة، نجلب الـ id من قاعدة البيانات فوراً ونثبته
+if ($user_id == 0 && !empty($_SESSION['email'])) {
+    try {
+        $stmt_safe = $pdo->prepare("SELECT id FROM users WHERE email = ? LIMIT 1");
+        $stmt_safe->execute([$_SESSION['email']]);
+        $safe_user = $stmt_safe->fetch(PDO::FETCH_ASSOC);
+        if ($safe_user) {
+            $user_id = $safe_user['id'];
+            $_SESSION['user_id'] = $user_id; // تثبيته في السيشن للأبد
+        }
+    } catch (Exception $e) {
+        // تجاهل صامت
+    }
+}
+
+// لو ظل الصفر، يتم إعادة التوجيه لصفحة الدخول بأمان
+if ($user_id <= 0) {
+    header('Location: login.php');
+    exit;
+}
 
 // معالجة تحديث البيانات والصورة عند إرسال الفورم
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
@@ -61,6 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
             // تحديث الجلسة فوراً لتظهر الصورة في الهيدر والبروفايل
             if (isset($_SESSION['full_name'])) $_SESSION['full_name'] = $name;
             if (isset($_SESSION['name'])) $_SESSION['name'] = $name;
+            if (isset($_SESSION['user_name'])) $_SESSION['user_name'] = $name;
             $_SESSION['email'] = $email;
             if ($avatar_base64 !== null) {
                 $_SESSION['avatar'] = $avatar_base64;
@@ -88,7 +117,7 @@ try {
     $user = [];
 }
 
-$current_name = $user['full_name'] ?? $user['name'] ?? $_SESSION['full_name'] ?? '';
+$current_name = $user['full_name'] ?? $user['name'] ?? $_SESSION['full_name'] ?? $_SESSION['user_name'] ?? '';
 $current_email = $user['email'] ?? $_SESSION['email'] ?? '';
 $current_phone = $user['phone'] ?? '';
 $current_avatar_db = $user['photo'] ?? $_SESSION['avatar'] ?? $_SESSION['photo'] ?? '';
