@@ -217,4 +217,4 @@ $currentPage = basename($_SERVER['PHP_SELF']);
   </div>
   <!--end::Sidebar Wrapper-->
 </aside>
-<!--end::Sidebar-->\
+<!--end::Sidebar-->
