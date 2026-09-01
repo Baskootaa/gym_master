@@ -9,7 +9,7 @@ require_once __DIR__ . '/includes/auth_check.php';
 $message = '';
 $messageType = '';
 
-// جلب معرف المستخدم الحالي من الجلسة
+// جلب معرف المستخدم الحالي من الجلسة بأمان تام
 $user_id = $_SESSION['user_id'] ?? $_SESSION['id'] ?? 0;
 
 // معالجة تحديث البيانات والصورة عند إرسال الفورم
