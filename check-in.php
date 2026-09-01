@@ -9,14 +9,12 @@ $errors = [];
 $success = false;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // التأكد من أن المستخدم يملك صلاحية لتنفيذ العملية من الخلفية أيضاً للأمان
     if (hasRole(['admin', 'staff'])) {
         $member_id = (int) ($_POST['member_id'] ?? 0);
 
         if ($member_id <= 0) {
             $errors[] = 'من فضلك اختار عضو';
         } else {
-            // توليد الوقت المحلي الصحيح لمصر وإدخاله مباشرة لمنع أي تفاوت بالساعات
             $current_time = date('Y-m-d H:i:s');
             $stmt = $pdo->prepare('INSERT INTO check_ins (member_id, check_in_time) VALUES (:member_id, :check_in_time)');
             $stmt->execute([
@@ -28,9 +26,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// جلب الأعضاء الذين لديهم اشتراك نشط وساري فقط لكي يظهروا في القائمة
+// جلب الأعضاء النشطين مع رقم الهواتف للبحث السريع بالاسم أو الرقم
 $members = $pdo->query('
-    SELECT DISTINCT m.id, m.full_name 
+    SELECT DISTINCT m.id, m.full_name, m.phone 
     FROM members m
     JOIN subscriptions s ON s.member_id = m.id
     WHERE s.end_date >= CURDATE()
@@ -53,7 +51,7 @@ $todayCheckins = $pdo->query(
      ORDER BY c.check_in_time DESC"
 )->fetchAll();
 
-// 2. جلب تسجيلات الدخول للأيام السابقة (قبل تاريخ اليوم)
+// 2. جلب تسجيلات الدخول للأيام السابقة
 $pastCheckins = $pdo->query(
     "SELECT c.id, c.check_in_time, m.full_name,
             (SELECT p.name FROM subscriptions s
@@ -70,6 +68,11 @@ $pastCheckins = $pdo->query(
 require_once 'includes/header.php';
 require_once 'includes/sidebar.php';
 ?>
+
+<!-- إضافة ملفات مكتبة Select2 للبحث السريع (CSS & JS) -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+
 <main class="app-main">
   <div class="app-content-header">
     <div class="container-fluid">
@@ -98,7 +101,6 @@ require_once 'includes/sidebar.php';
       <?php endforeach; ?>
 
       <div class="row">
-        <!-- قسم تسجيل الحضور (يظهر فقط للأدمن والموظف) -->
         <?php if (hasRole(['admin', 'staff'])): ?>
         <div class="col-lg-4">
           <div class="card mb-4">
@@ -111,11 +113,14 @@ require_once 'includes/sidebar.php';
               <?php else: ?>
                 <form method="POST" action="check-in.php">
                   <div class="mb-3">
-                    <label class="form-label">اختار العضو</label>
-                    <select name="member_id" class="form-select" required>
-                      <option value="">-- اختار عضو --</option>
+                    <label class="form-label">بحث باسم العضو أو رقم الهاتف</label>
+                    <!-- أضفنا الكلاس select2 للتحكم -->
+                    <select name="member_id" id="memberSelect" class="form-select" required>
+                      <option value="">-- ابحث بالاسم أو رقم الهاتف --</option>
                       <?php foreach ($members as $member): ?>
-                        <option value="<?= $member['id'] ?>"><?= htmlspecialchars($member['full_name']) ?></option>
+                        <option value="<?= $member['id'] ?>">
+                          <?= htmlspecialchars($member['full_name']) ?> (<?= htmlspecialchars($member['phone']) ?>)
+                        </option>
                       <?php endforeach; ?>
                     </select>
                   </div>
@@ -129,9 +134,7 @@ require_once 'includes/sidebar.php';
         </div>
         <?php endif; ?>
 
-        <!-- الجداول: تأخذ المساحة الكاملة 12 إذا كان المستخدم عادي، أو 8 إذا ظهر نموذج التسجيل بجانبها -->
         <div class="<?= hasRole(['admin', 'staff']) ? 'col-lg-8' : 'col-lg-12' ?>">
-          <!-- جدول تسجيلات دخول اليوم -->
           <div class="card mb-4">
             <div class="card-header">
               <h3 class="card-title"><i class="bi bi-person-check-fill me-2"></i>تسجيلات الدخول اليوم (<?= count($todayCheckins) ?>)</h3>
@@ -166,7 +169,6 @@ require_once 'includes/sidebar.php';
             </div>
           </div>
 
-          <!-- جدول تسجيلات الدخول السابقة (التواريخ القديمة) -->
           <div class="card mb-4">
             <div class="card-header bg-secondary text-white">
               <h3 class="card-title"><i class="bi bi-clock-history me-2"></i>سجل الدخول السابق (الأيام الماضية)</h3>
@@ -207,5 +209,18 @@ require_once 'includes/sidebar.php';
     </div>
   </div>
 </main>
+
+<!-- تشغيل مكتبة Select2 وجعلها تفاعلية -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+  $(document).ready(function() {
+      $('#memberSelect').select2({
+          theme: 'bootstrap-5',
+          placeholder: '-- ابحث بالاسم أو رقم الهاتف --',
+          allowClear: true
+      });
+  });
+</script>
 
 <?php require_once 'includes/footer.php'; ?>
