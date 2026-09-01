@@ -28,35 +28,30 @@ try {
     $new_members_stmt = $pdo->query("SELECT COUNT(*) as count FROM members WHERE MONTH(join_date) = MONTH(CURRENT_DATE()) AND YEAR(join_date) = YEAR(CURRENT_DATE())");
     $new_members = $new_members_stmt ? $new_members_stmt->fetch(PDO::FETCH_ASSOC)['count'] : 0;
 
-    // 2. إحصائيات الاشتراكات
+    // 2. إحصائيات الاشتراكات (بناءً على أحدث اشتراك لكل عضو لضمان عدم تكرار السجلات القديمة)
     $active_subs = 0;
     $expired_subs = 0;
 
     $subs_table_check = $pdo->query("SHOW TABLES LIKE 'subscriptions'");
     if ($subs_table_check && $subs_table_check->rowCount() > 0) {
-        $has_end_date = false;
-        $has_status = false;
+        // استعلام ذكي يجلب حالة أحدث اشتراك لكل عضو بناءً على تاريخ النهاية أو الـ ID الأكبر
+        $query_latest_subs = "
+            SELECT 
+                SUM(CASE WHEN end_date >= CURDATE() THEN 1 ELSE 0 END) as active_count,
+                SUM(CASE WHEN end_date < CURDATE() THEN 1 ELSE 0 END) as expired_count
+            FROM subscriptions s1
+            WHERE s1.id = (
+                SELECT MAX(s2.id) 
+                FROM subscriptions s2 
+                WHERE s2.member_id = s1.member_id
+            )
+        ";
         
-        $cols_check = $pdo->query("SHOW COLUMNS FROM subscriptions");
-        if ($cols_check) {
-            while ($col = $cols_check->fetch(PDO::FETCH_ASSOC)) {
-                if ($col['Field'] === 'end_date') $has_end_date = true;
-                if ($col['Field'] === 'status') $has_status = true;
-            }
-        }
-
-        if ($has_end_date) {
-            $active_q = $pdo->query("SELECT COUNT(*) as count FROM subscriptions WHERE end_date >= CURDATE()");
-            $active_subs = $active_q ? $active_q->fetch(PDO::FETCH_ASSOC)['count'] : 0;
-
-            $expired_q = $pdo->query("SELECT COUNT(*) as count FROM subscriptions WHERE end_date < CURDATE()");
-            $expired_subs = $expired_q ? $expired_q->fetch(PDO::FETCH_ASSOC)['count'] : 0;
-        } elseif ($has_status) {
-            $active_q = $pdo->query("SELECT COUNT(*) as count FROM subscriptions WHERE LOWER(status) = 'active'");
-            $active_subs = $active_q ? $active_q->fetch(PDO::FETCH_ASSOC)['count'] : 0;
-
-            $expired_q = $pdo->query("SELECT COUNT(*) as count FROM subscriptions WHERE LOWER(status) = 'expired' OR LOWER(status) = 'inactive'");
-            $expired_subs = $expired_q ? $expired_q->fetch(PDO::FETCH_ASSOC)['count'] : 0;
+        $stmt_subs = $pdo->query($query_latest_subs);
+        if ($stmt_subs) {
+            $subs_data = $stmt_subs->fetch(PDO::FETCH_ASSOC);
+            $active_subs = $subs_data['active_count'] ?? 0;
+            $expired_subs = $subs_data['expired_count'] ?? 0;
         }
     }
 
