@@ -13,7 +13,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($member_id <= 0) {
             $errors[] = 'من فضلك اختار عضو';
         } else {
-            $stmt = $pdo->prepare('INSERT INTO check_ins (member_id) VALUES (:member_id)');
+            // إضافة الوقت الحالي صراحة باستخدام NOW() لضمان عدم حفظه كـ NULL
+            $stmt = $pdo->prepare('INSERT INTO check_ins (member_id, check_in_time) VALUES (:member_id, NOW())');
             $stmt->execute(['member_id' => $member_id]);
             $success = true;
         }
@@ -148,7 +149,7 @@ require_once 'includes/sidebar.php';
                           <td><?= $i + 1 ?></td>
                           <td><?= htmlspecialchars($checkin['full_name']) ?></td>
                           <td><?= htmlspecialchars($checkin['package_name'] ?? 'بدون اشتراك') ?></td>
-                          <td><?= date('h:i A', strtotime($checkin['check_in_time'])) ?></td>
+                          <td><?= !empty($checkin['check_in_time']) ? date('h:i A', strtotime($checkin['check_in_time'])) : '-' ?></td>
                         </tr>
                       <?php endforeach; ?>
                     <?php endif; ?>
@@ -183,7 +184,7 @@ require_once 'includes/sidebar.php';
                           <td><?= $i + 1 ?></td>
                           <td><?= htmlspecialchars($past['full_name']) ?></td>
                           <td><?= htmlspecialchars($past['package_name'] ?? 'بدون اشتراك') ?></td>
-                          <td><?= date('Y-m-d - h:i A', strtotime($past['check_in_time'])) ?></td>
+                          <td><?= !empty($past['check_in_time']) ? date('Y-m-d - h:i A', strtotime($past['check_in_time'])) : '-' ?></td>
                         </tr>
                       <?php endforeach; ?>
                     <?php endif; ?>
