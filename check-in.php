@@ -20,7 +20,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$members = $pdo->query('SELECT id, full_name FROM members ORDER BY full_name ASC')->fetchAll();
+// جلب الأعضاء الذين لديهم اشتراك نشط وساري فقط لكي يظهروا في القائمة
+$members = $pdo->query('
+    SELECT DISTINCT m.id, m.full_name 
+    FROM members m
+    JOIN subscriptions s ON s.member_id = m.id
+    WHERE s.end_date >= CURDATE()
+    ORDER BY m.full_name ASC
+')->fetchAll();
 
 // 1. جلب تسجيلات الدخول لليوم الحالي
 $todayCheckins = $pdo->query(
@@ -92,7 +99,7 @@ require_once 'includes/sidebar.php';
             </div>
             <div class="card-body">
               <?php if (empty($members)): ?>
-                <p class="text-secondary">لازم تضيف أعضاء الأول من <a href="member-add.php">هنا</a></p>
+                <p class="text-secondary">لا توجد أعضاء باشتراكات نشطة حالياً</p>
               <?php else: ?>
                 <form method="POST" action="check-in.php">
                   <div class="mb-3">
