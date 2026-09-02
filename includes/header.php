@@ -65,8 +65,16 @@ $totalNotifications = $expiringCount + $newMembersCount + ($isAdmin ? 1 : 0);
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <title>لوحة التحكم | نظام إدارة الجيم</title>
-      <link rel="manifest" href="manifest.json">
-      <meta name="theme-color" content="#000000">
+    
+    <!--begin::PWA & Apple Icons Settings-->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#dc3545">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Gym Master">
+    <link rel="apple-touch-icon" href="assets/img/gym-PWA.png">
+    <!--end::PWA & Apple Icons Settings-->
+
     <!--begin::Accessibility Meta Tags-->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
     <meta name="color-scheme" content="light dark" />
@@ -203,6 +211,17 @@ $totalNotifications = $expiringCount + $newMembersCount + ($isAdmin ? 1 : 0);
       }
     </style>
     <!--end::Custom Fixes-->
+
+    <!-- Register Service Worker for PWA -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('sw.js')
+            .then((reg) => console.log('Service Worker registered successfully', reg))
+            .catch((err) => console.log('Service Worker registration failed', err));
+        });
+      }
+    </script>
   </head>
   <!--end::Head-->
 
