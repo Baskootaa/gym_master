@@ -69,13 +69,16 @@ try {
         WHERE sub.end_date >= CURRENT_DATE() AND DATEDIFF(sub.end_date, CURRENT_DATE()) <= 7
     ")->fetchColumn();
     
-    // جلب آخر 4 تسجيلات دخول لليوم الحالي (Today Check-ins)
+    // جلب آخر 4 تسجيلات دخول لليوم الحالي (Today Check-ins) مع فحص حالة الاشتراك بناءً على تاريخ النهاية الحقيقي
     $todayStmt = $pdo->prepare("
-        SELECT c.id, c.check_in_time, m.full_name AS member_name, m.status AS member_status,
+        SELECT c.id, c.check_in_time, m.full_name AS member_name,
                (SELECT p.name FROM subscriptions s
                 JOIN packages p ON p.id = s.package_id
                 WHERE s.member_id = m.id
-                ORDER BY s.id DESC LIMIT 1) AS package_name
+                ORDER BY s.id DESC LIMIT 1) AS package_name,
+               (SELECT s.end_date FROM subscriptions s
+                WHERE s.member_id = m.id
+                ORDER BY s.id DESC LIMIT 1) AS end_date
         FROM check_ins c
         JOIN members m ON m.id = c.member_id
         WHERE DATE(c.check_in_time) = CURRENT_DATE()
@@ -219,16 +222,16 @@ try {
                           <td><?php echo htmlspecialchars($row['member_name']); ?></td>
                           <td>
                             <?php 
-                               if (!empty($row['package_name'])) {
-                                   echo htmlspecialchars($row['package_name']); 
-                               } else {
-                                   echo '<span class="text-muted">بدون باقة</span>';
-                               }
+                                if (!empty($row['package_name'])) {
+                                    echo htmlspecialchars($row['package_name']); 
+                                } else {
+                                    echo '<span class="text-muted">بدون باقة</span>';
+                                }
                             ?>
                           </td>
                           <td><?php echo date('h:i A', strtotime($row['check_in_time'])); ?></td>
                           <td>
-                            <?php if (isset($row['member_status']) && $row['member_status'] == 'active'): ?>
+                            <?php if (!empty($row['end_date']) && $row['end_date'] >= date('Y-m-d')): ?>
                                 <span class="badge bg-success">نشط</span>
                             <?php else: ?>
                                 <span class="badge bg-danger">غير نشط</span>
