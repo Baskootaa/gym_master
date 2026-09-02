@@ -53,23 +53,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_member'])) {
             if ($photo_data === 'DELETE') {
                 $final_photo = null;
             } 
-            // لو تم التقاط صورة جديدة بالكامل (Base64)
+            // لو تم التقاط صورة جديدة بالكاميرا (Base64) - يتم تخزينها مباشرة لتجنب قيود السيرفر السحابي
             elseif (!empty($photo_data) && strpos($photo_data, 'data:image') === 0) {
-                $upload_dir = __DIR__ . '/uploads/avatars/';
-                if (!is_dir($upload_dir)) {
-                    mkdir($upload_dir, 0755, true);
-                }
-                list($type, $photo_data) = explode(';', $photo_data);
-                list(, $photo_data) = explode(',', $photo_data);
-                $decoded_image = base64_decode($photo_data);
-                
-                $filename = 'avatar_' . time() . '_' . mt_rand(1000, 9999) . '.jpeg';
-                $file_path = $upload_dir . $filename;
-                
-                if (file_put_contents($file_path, $decoded_image)) {
-                    $final_photo = 'uploads/avatars/' . $filename;
-                }
-            } elseif (!empty($photo_data)) {
+                $final_photo = $photo_data;
+            } 
+            // الحفاظ على القديمة لو لم يتم التغيير
+            elseif (!empty($photo_data)) {
                 $final_photo = $photo_data;
             }
 
@@ -153,7 +142,7 @@ require_once __DIR__ . '/includes/sidebar.php';
                                 <div class="mb-3">
                                     <?php 
                                     $photo_src = !empty($member['photo']) ? $member['photo'] : '';
-                                    if ($photo_src && strpos($photo_src, 'http') !== 0 && strpos($photo_src, '/') !== 0) {
+                                    if ($photo_src && strpos($photo_src, 'http') !== 0 && strpos($photo_src, 'data:image') !== 0 && strpos($photo_src, '/') !== 0) {
                                         $photo_src = './' . $photo_src;
                                     }
                                     ?>

@@ -1,4 +1,5 @@
 <?php
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -10,31 +11,31 @@ require_once __DIR__ . '/config/db.php';
 checkAccess(['admin', 'staff']);
 
 $member = [
-    'full_name'          => '',
-    'phone'              => '',
-    'email'              => '',
-    'gender'             => 'male',
-    'birth_date'         => '',
-    'address'            => '',
-    'membership_type'    => 'شهري',
+    'full_name'            => '',
+    'phone'                => '',
+    'email'                => '',
+    'gender'               => 'male',
+    'birth_date'           => '',
+    'address'              => '',
+    'membership_type'      => 'شهري',
     'subscription_start' => date('Y-m-d'),
     'subscription_end'   => '',
-    'status'             => 'نشط',
-    'notes'              => '',
+    'status'               => 'نشط',
+    'notes'                => '',
 ];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_member'])) {
-    $member['full_name']          = trim($_POST['full_name'] ?? '');
-    $member['phone']              = trim($_POST['phone'] ?? '');
-    $member['email']              = trim($_POST['email'] ?? '');
-    $member['gender']             = $_POST['gender'] ?? 'male';
-    $member['birth_date']         = $_POST['birth_date'] ?? '';
-    $member['address']            = trim($_POST['address'] ?? '');
-    $member['membership_type']    = $_POST['membership_type'] ?? 'شهري';
+    $member['full_name']            = trim($_POST['full_name'] ?? '');
+    $member['phone']                = trim($_POST['phone'] ?? '');
+    $member['email']                = trim($_POST['email'] ?? '');
+    $member['gender']               = $_POST['gender'] ?? 'male';
+    $member['birth_date']           = $_POST['birth_date'] ?? '';
+    $member['address']              = trim($_POST['address'] ?? '');
+    $member['membership_type']      = $_POST['membership_type'] ?? 'شهري';
     $member['subscription_start'] = $_POST['subscription_start'] ?? '';
     $member['subscription_end']   = $_POST['subscription_end'] ?? '';
-    $member['status']             = $_POST['status'] ?? 'نشط';
-    $member['notes']              = trim($_POST['notes'] ?? '');
+    $member['status']               = $_POST['status'] ?? 'نشط';
+    $member['notes']                = trim($_POST['notes'] ?? '');
 
     // استلام صورة الكاميرا المبعثرة كـ Base64
     $webcamImage = $_POST['webcam_image'] ?? '';
@@ -45,7 +46,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_member'])) {
         $_SESSION['error'] = "تاريخ نهاية الاشتراك لازم يكون بعد تاريخ البداية.";
     } else {
         try {
-            // 1. إدخال البيانات مبدئياً للحصول على الـ ID الخاص بالعضو
+            // تخزين صورة الـ Base64 مباشرة في قاعدة البيانات لتجنب مشاكل الصلاحيات على السيرفر السحابي (Render)
+            $finalPhoto = (!empty($webcamImage) && strpos($webcamImage, 'data:image') === 0) ? $webcamImage : null;
+
+            // 1. إدخال البيانات مباشرة مع الصورة لتفادي أخطاء الـ Permission denied
             $stmt = $pdo->prepare(
                 "INSERT INTO members (full_name, phone, email, gender, birth_date, address,
                  membership_type, subscription_start, subscription_end, status, notes, photo)
@@ -63,41 +67,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_member'])) {
                 $member['subscription_end'],
                 $member['status'],
                 ($member['notes'] !== '' ? $member['notes'] : null),
-                '', // قيمة مؤقتة للصورة لحين حفظها بالـ ID
+                $finalPhoto,
             ]);
-
-            $newMemberId = $pdo->lastInsertId();
-            $photoPath = null;
-
-            // 2. معالجة وحفظ صورة الكاميرا إذا تم التقاطها
-            if (!empty($webcamImage) && preg_match('/^data:image\/(\w+);base64,/', $webcamImage, $type)) {
-                $data = substr($webcamImage, strpos($webcamImage, ',') + 1);
-                $data = base64_decode($data);
-
-                if ($data !== false) {
-                    $extension = strtolower($type[1]);
-                    if ($extension === 'jpeg') {
-                        $extension = 'jpg';
-                    }
-                    
-                    if (in_array($extension, ['jpg', 'jpeg', 'png', 'webp'], true)) {
-                        $newFileName = 'member_' . $newMemberId . '.' . $extension;
-                        $uploadDir = __DIR__ . '/assets/img/members/';
-
-                        if (!is_dir($uploadDir)) {
-                            mkdir($uploadDir, 0755, true);
-                        }
-
-                        if (file_put_contents($uploadDir . $newFileName, $data) !== false) {
-                            $photoPath = 'members/' . $newFileName;
-
-                            // تحديث مسار الصورة في قاعدة البيانات بالاسم المرتب
-                            $updateStmt = $pdo->prepare("UPDATE members SET photo = ? WHERE id = ?");
-                            $updateStmt->execute([$photoPath, $newMemberId]);
-                        }
-                    }
-                }
-            }
 
             $_SESSION['message'] = "تمت إضافة العضو بنجاح!";
             header("Location: members.php");
