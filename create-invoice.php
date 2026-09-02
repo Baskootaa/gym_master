@@ -30,17 +30,19 @@ $memberCols = getTableColumns($pdo, 'members');
 $packageCols = getTableColumns($pdo, 'packages');
 $salesCols = getTableColumns($pdo, 'sales');
 
-// 1. جلب الاشتراكات بأدق طريقة ممكنة حسب هيكل قاعدة البيانات لديك
+// 1. جلب الاشتراكات بأدق طريقة ممكنة حسب هيكل قاعدة البيانات لديك (تشمل جميع الاشتراكات حتى المنتهية)
 $subscriptions = [];
 try {
-    // بناء استعلام مرن يعتمد على الأعمدة المتاحة لديك فعلياً
     $subQueryStr = "SELECT s.*";
     
-    // محاولة جلب اسم العضو من جدول الأعضاء أو من جدول الاشتراكات مباشرة إذا وجد عمود للاسم
     if (in_array('name', $memberCols)) {
         $subQueryStr .= ", m.name as exact_member_name";
     } elseif (in_array('full_name', $memberCols)) {
         $subQueryStr .= ", m.full_name as exact_member_name";
+    }
+    
+    if (in_array('phone', $memberCols)) {
+        $subQueryStr .= ", m.phone as exact_member_phone";
     }
     
     if (in_array('name', $packageCols)) {
@@ -67,7 +69,6 @@ try {
         $subscriptions = $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 } catch (Exception $e) {
-    // استعلام احتياطي بسيط في حال حدوث أي خطأ
     $stmt = $pdo->query("SELECT * FROM subscriptions ORDER BY id DESC");
     if ($stmt) {
         $subscriptions = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -83,7 +84,7 @@ try {
     }
 } catch (Exception $e) {}
 
-// 3. جلب مبيعات المتجر (POS) مع معالجة أسماء المنتجات والأسعار والكميات والتواريخ
+// 3. جلب مبيعات المتجر (POS) مع جلب اسم العضو المرتبط لزيادة الاحترافية
 $sales = [];
 try {
     $salesQueryStr = "SELECT sl.*";
@@ -93,10 +94,18 @@ try {
         $salesQueryStr .= ", p.name as product_real_name";
     }
     
+    if (in_array('member_id', $salesCols) && !empty($memberCols)) {
+        $salesQueryStr .= ", m.full_name as sale_member_name, m.phone as sale_member_phone";
+    }
+    
     $salesQueryStr .= " FROM sales sl";
     
     if (in_array('product_id', $salesCols) && !empty($productsCols)) {
         $salesQueryStr .= " LEFT JOIN products p ON sl.product_id = p.id";
+    }
+    
+    if (in_array('member_id', $salesCols) && !empty($memberCols)) {
+        $salesQueryStr .= " LEFT JOIN members m ON sl.member_id = m.id";
     }
     
     $salesQueryStr .= " ORDER BY sl.id DESC";
@@ -175,35 +184,41 @@ try {
         </div>
       </div>
 
-      <!-- ================= قسم 1: الاشتراكات (Checkboxes) ================= -->
+      <!-- ================= قسم 1: الاشتراكات (مع إضافة بحث سريع) ================= -->
       <div id="section_subs" class="receipt-section">
         <div class="card card-outline card-primary shadow-sm mb-4 d-print-none">
           <div class="card-body">
+            <div class="row mb-3">
+              <div class="col-md-12">
+                <label class="form-label fw-bold">بحث سريع عن العضو (بالاسم أو رقم الهاتف):</label>
+                <input type="text" id="subSearchInput" class="form-control" placeholder="اكتب للبحث السريع في قائمة الاشتراكات..." onkeyup="filterSubscriptions()">
+              </div>
+            </div>
+            
             <label class="form-label fw-bold">اختر مشتركاً أو أكثر للطباعة في نفس الإيصال:</label>
-            <div class="row g-2" style="max-height: 220px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; border-radius: 5px;">
+            <div class="row g-2" id="subscriptionsContainer" style="max-height: 220px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; border-radius: 5px;">
               <?php if (empty($subscriptions)): ?>
                 <p class="text-muted text-center">لا توجد اشتراكات مسجلة.</p>
               <?php else: ?>
                 <?php foreach ($subscriptions as $sub): 
-                    // استخراج الاسم بأكثر من احتمال لضمان ظهوره بدقة
                     $mName = $sub['exact_member_name'] ?? $sub['member_name'] ?? $sub['name'] ?? $sub['member'] ?? ('عضو #' . ($sub['member_id'] ?? $sub['id']));
+                    $mPhone = $sub['exact_member_phone'] ?? '';
                     $pName = $sub['exact_package_name'] ?? $sub['package_name'] ?? $sub['package'] ?? 'اشتراك جيم';
-                    // استخراج السعر الصحيح (من جدول الاشتراكات مباشرة أو من الباقة المرتبطة)
                     $pPrice = $sub['price'] ?? $sub['package_table_price'] ?? $sub['total'] ?? $sub['amount'] ?? 500;
                     $sDate = $sub['start_date'] ?? $sub['date'] ?? '---';
                     $eDate = $sub['end_date'] ?? '---';
                 ?>
-                  <div class="col-md-6">
+                  <div class="col-md-6 sub-item-wrapper" data-search-text="<?php echo strtolower($mName . ' ' . $mPhone . ' ' . $pName); ?>">
                     <div class="form-check">
                       <input class="form-check-input sub-checkbox" type="checkbox" value="<?php echo $sub['id']; ?>"
-                             data-member="<?php echo htmlspecialchars($mName); ?>"
-                             data-package="<?php echo htmlspecialchars($pName); ?>"
-                             data-price="<?php echo $pPrice; ?>"
-                             data-start="<?php echo $sDate; ?>"
-                             data-end="<?php echo $eDate; ?>"
-                             id="sub_chk_<?php echo $sub['id']; ?>" onchange="updateReceiptsView()">
+                           data-member="<?php echo htmlspecialchars($mName); ?>"
+                           data-package="<?php echo htmlspecialchars($pName); ?>"
+                           data-price="<?php echo $pPrice; ?>"
+                           data-start="<?php echo $sDate; ?>"
+                           data-end="<?php echo $eDate; ?>"
+                           id="sub_chk_<?php echo $sub['id']; ?>" onchange="updateReceiptsView()">
                       <label class="form-check-label" for="sub_chk_<?php echo $sub['id']; ?>">
-                        <strong><?php echo htmlspecialchars($mName); ?></strong> - <?php echo htmlspecialchars($pName); ?> (<strong><?php echo $pPrice; ?> <?php echo $currency; ?></strong>)
+                        <strong><?php echo htmlspecialchars($mName); ?></strong> <?php echo !empty($mPhone) ? '(' . htmlspecialchars($mPhone) . ')' : ''; ?> - <?php echo htmlspecialchars($pName); ?> (<strong><?php echo $pPrice; ?> <?php echo $currency; ?></strong>)
                       </label>
                     </div>
                   </div>
@@ -268,12 +283,12 @@ try {
                   <div class="col-md-6">
                     <div class="form-check">
                       <input class="form-check-input exp-checkbox" type="checkbox" value="<?php echo $exp['id']; ?>"
-                             data-title="<?php echo htmlspecialchars($title); ?>"
-                             data-amount="<?php echo $amount; ?>"
-                             data-category="<?php echo htmlspecialchars($category); ?>"
-                             data-date="<?php echo $date; ?>"
-                             data-notes="<?php echo htmlspecialchars($notes); ?>"
-                             id="exp_chk_<?php echo $exp['id']; ?>" onchange="updateReceiptsView()">
+                           data-title="<?php echo htmlspecialchars($title); ?>"
+                           data-amount="<?php echo $amount; ?>"
+                           data-category="<?php echo htmlspecialchars($category); ?>"
+                           data-date="<?php echo $date; ?>"
+                           data-notes="<?php echo htmlspecialchars($notes); ?>"
+                           id="exp_chk_<?php echo $exp['id']; ?>" onchange="updateReceiptsView()">
                       <label class="form-check-label" for="exp_chk_<?php echo $exp['id']; ?>">
                         <strong><?php echo htmlspecialchars($title); ?></strong> (<strong><?php echo $amount; ?> <?php echo $currency; ?></strong>)
                       </label>
@@ -321,32 +336,41 @@ try {
         </div>
       </div>
 
-      <!-- ================= قسم 3: مبيعات المتجر POS (Checkboxes) ================= -->
+      <!-- ================= قسم 3: مبيعات المتجر POS (مع إضافة بحث وإظهار اسم العضو) ================= -->
       <div id="section_pos" class="receipt-section" style="display: none;">
         <div class="card card-outline card-success shadow-sm mb-4 d-print-none">
           <div class="card-body">
-            <label class="form-label fw-bold">اختر منتجاً أو أكثر (مثل مياه، تويست، قهوة) لدمجهم في فاتورة واحدة:</label>
-            <div class="row g-2" style="max-height: 220px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; border-radius: 5px;">
+            <div class="row mb-3">
+              <div class="col-md-12">
+                <label class="form-label fw-bold">بحث سريع في مبيعات المتجر (باسم المنتج أو اسم العضو):</label>
+                <input type="text" id="posSearchInput" class="form-control" placeholder="اكتب للبحث السريع في المبيعات..." onkeyup="filterPosSales()">
+              </div>
+            </div>
+
+            <label class="form-label fw-bold">اختر منتجاً أو أكثر لدمجهم في فاتورة واحدة:</label>
+            <div class="row g-2" id="posContainer" style="max-height: 220px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; border-radius: 5px;">
               <?php if (empty($sales)): ?>
                 <p class="text-muted text-center">لا توجد مبيعات مسجلة في المتجر.</p>
               <?php else: ?>
                 <?php foreach ($sales as $sale): 
-                    // جلب اسم المنتج بأكثر من احتمال (من الجدول المرتبط أو الحقول المباشرة مثل product_name, item_name, name)
                     $prodName = $sale['product_real_name'] ?? $sale['product_name'] ?? $sale['item_name'] ?? $sale['name'] ?? 'منتج / مكمل';
                     $qty = $sale['quantity'] ?? $sale['qty'] ?? 1;
                     $total = $sale['total_price'] ?? $sale['price'] ?? $sale['total'] ?? 0;
                     $saleDate = $sale['sale_date'] ?? $sale['date'] ?? $sale['created_at'] ?? '---';
+                    $memberName = $sale['sale_member_name'] ?? 'عضو نقدي / عام';
+                    $memberPhone = $sale['sale_member_phone'] ?? '';
                 ?>
-                  <div class="col-md-6">
+                  <div class="col-md-6 pos-item-wrapper" data-search-text="<?php echo strtolower($prodName . ' ' . $memberName . ' ' . $memberPhone); ?>">
                     <div class="form-check">
                       <input class="form-check-input pos-checkbox" type="checkbox" value="<?php echo $sale['id']; ?>"
-                             data-product="<?php echo htmlspecialchars($prodName); ?>"
-                             data-qty="<?php echo $qty; ?>"
-                             data-total="<?php echo $total; ?>"
-                             data-date="<?php echo $saleDate; ?>"
-                             id="pos_chk_<?php echo $sale['id']; ?>" onchange="updateReceiptsView()">
+                           data-product="<?php echo htmlspecialchars($prodName); ?>"
+                           data-member="<?php echo htmlspecialchars($memberName); ?>"
+                           data-qty="<?php echo $qty; ?>"
+                           data-total="<?php echo $total; ?>"
+                           data-date="<?php echo $saleDate; ?>"
+                           id="pos_chk_<?php echo $sale['id']; ?>" onchange="updateReceiptsView()">
                       <label class="form-check-label" for="pos_chk_<?php echo $sale['id']; ?>">
-                        <strong><?php echo htmlspecialchars($prodName); ?></strong> (الكمية: <?php echo $qty; ?>) - <strong><?php echo $total; ?> <?php echo $currency; ?></strong>
+                        <strong><?php echo htmlspecialchars($prodName); ?></strong> - العضو: <strong><?php echo htmlspecialchars($memberName); ?></strong> (الكمية: <?php echo $qty; ?>) - <strong><?php echo $total; ?> <?php echo $currency; ?></strong>
                       </label>
                     </div>
                   </div>
@@ -371,6 +395,7 @@ try {
             <table class="table table-bordered text-center align-middle">
               <thead class="table-dark">
                 <tr>
+                  <th>اسم العضو</th>
                   <th>المنتج / المكمل</th>
                   <th>الكمية</th>
                   <th>تاريخ البيع</th>
@@ -379,12 +404,12 @@ try {
               </thead>
               <tbody id="pos_receipt_items">
                 <tr>
-                  <td colspan="4" class="text-muted">الرجاء اختيار منتج واحد على الأقل من المتجر</td>
+                  <td colspan="5" class="text-muted">الرجاء اختيار منتج واحد على الأقل من المتجر</td>
                 </tr>
               </tbody>
               <tfoot id="pos_receipt_footer" style="display: none;">
                 <tr class="fw-bold">
-                  <td colspan="3" class="text-end">الإجمالي الكلي:</td>
+                  <td colspan="4" class="text-end">الإجمالي الكلي:</td>
                   <td id="pos_grand_total" class="text-success">0.00 <?php echo $currency; ?></td>
                 </tr>
               </tfoot>
@@ -416,6 +441,33 @@ function switchSection(section, event) {
         document.getElementById('section_pos').style.display = 'block';
         event.currentTarget.classList.add('active', 'btn-success');
     }
+}
+
+// دوال البحث السريع
+function filterSubscriptions() {
+    const query = document.getElementById('subSearchInput').value.toLowerCase();
+    const items = document.querySelectorAll('.sub-item-wrapper');
+    items.forEach(item => {
+        const text = item.getAttribute('data-search-text');
+        if (text.includes(query)) {
+            item.style.display = 'block';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+}
+
+function filterPosSales() {
+    const query = document.getElementById('posSearchInput').value.toLowerCase();
+    const items = document.querySelectorAll('.pos-item-wrapper');
+    items.forEach(item => {
+        const text = item.getAttribute('data-search-text');
+        if (text.includes(query)) {
+            item.style.display = 'block';
+        } else {
+            item.style.display = 'none';
+        }
+    });
 }
 
 function updateReceiptsView() {
@@ -489,19 +541,20 @@ function updateReceiptsView() {
         `;
     }
 
-    // 3. تحديث جدول مبيعات المتجر POS
+    // 3. تحديث جدول مبيعات المتجر POS (مع اسم العضو)
     const posCheckboxes = document.querySelectorAll('.pos-checkbox:checked');
     const posTbody = document.getElementById('pos_receipt_items');
     const posFooter = document.getElementById('pos_receipt_footer');
     posTbody.innerHTML = '';
     
     if (posCheckboxes.length === 0) {
-        posTbody.innerHTML = '<tr><td colspan="4" class="text-muted">الرجاء اختيار منتج واحد على الأقل من المتجر</td></tr>';
+        posTbody.innerHTML = '<tr><td colspan="5" class="text-muted">الرجاء اختيار منتج واحد على الأقل من المتجر</td></tr>';
         posFooter.style.display = 'none';
     } else {
         let grandTotal = 0;
         posCheckboxes.forEach(chk => {
             const product = chk.getAttribute('data-product');
+            const member = chk.getAttribute('data-member');
             const qty = chk.getAttribute('data-qty');
             const date = chk.getAttribute('data-date');
             const total = parseFloat(chk.getAttribute('data-total')) || 0;
@@ -509,6 +562,7 @@ function updateReceiptsView() {
             
             posTbody.innerHTML += `
                 <tr>
+                    <td><strong>${member}</strong></td>
                     <td><strong>${product}</strong></td>
                     <td>${qty}</td>
                     <td>${date}</td>

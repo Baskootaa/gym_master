@@ -1,4 +1,6 @@
 <?php
+// ضبط المنطقة الزمنية للقاهرة مباشرة
+date_default_timezone_set('Africa/Cairo');
 
 // 1. بدء الجلسة لتخزين الرسائل
 if (session_status() === PHP_SESSION_NONE) {
@@ -19,8 +21,9 @@ checkAccess(['admin', 'staff']);
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['process_sale'])) {
     $product_id = intval($_POST['product_id'] ?? 0);
     $quantity = intval($_POST['quantity'] ?? 1);
+    $member_id = intval($_POST['member_id'] ?? 0); // استقبال العضو المختار
 
-    if ($product_id > 0 && $quantity > 0) {
+    if ($product_id > 0 && $quantity > 0 && $member_id > 0) {
         try {
             // جلب المنتج وتأكد من وجود كمية
             $stmt = $pdo->prepare("SELECT * FROM products WHERE id = ?");
@@ -33,9 +36,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['process_sale'])) {
                 // بدء معاملة (Transaction) لضمان تنفيذ البيع والخصم معاً
                 $pdo->beginTransaction();
 
-                // 1. تسجيل عملية البيع
-                $insertSale = $pdo->prepare("INSERT INTO sales (product_id, quantity, total_price) VALUES (?, ?, ?)");
-                $insertSale->execute([$product_id, $quantity, $total_price]);
+                // 1. تسجيل عملية البيع مع الـ member_id
+                $insertSale = $pdo->prepare("INSERT INTO sales (member_id, product_id, quantity, total_price) VALUES (?, ?, ?, ?)");
+                $insertSale->execute([$member_id, $product_id, $quantity, $total_price]);
 
                 // 2. خصم الكمية من المخزن
                 $updateStock = $pdo->prepare("UPDATE products SET quantity = quantity - ? WHERE id = ?");
@@ -54,7 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['process_sale'])) {
             $_SESSION['error'] = "حدث خطأ أثناء البيع: " . $e->getMessage();
         }
     } else {
-        $_SESSION['error'] = "يرجى اختيار المنتج وتحديد كمية صحيحة.";
+        $_SESSION['error'] = "يرجى اختيار العضو، المنتج، وتحديد كمية صحيحة.";
     }
 
     // إعادة التوجيه لنفس الصفحة للحد من تكرار البيع عند Refresh
@@ -71,15 +74,35 @@ unset($_SESSION['message'], $_SESSION['error']);
 require_once __DIR__ . '/includes/header.php';
 require_once __DIR__ . '/includes/sidebar.php';
 
-// 5. جلب المنتجات المتاحة للبيع وآخر المبيعات (تعديل الجلب إلى LIMIT 10)
+// 5. جلب الأعضاء النشطين للبحث السريع، المنتجات، وآخر المبيعات مع اسم العضو
 try {
+    $members = $pdo->query('
+        SELECT DISTINCT m.id, m.full_name, m.phone 
+        FROM members m
+        JOIN subscriptions s ON s.member_id = m.id
+        WHERE s.end_date >= CURDATE()
+        ORDER BY m.full_name ASC
+    ')->fetchAll();
+
     $products = $pdo->query("SELECT * FROM products WHERE quantity > 0 ORDER BY name ASC")->fetchAll();
-    $recentSales = $pdo->query("SELECT s.*, p.name as product_name FROM sales s JOIN products p ON s.product_id = p.id ORDER BY s.id DESC LIMIT 10")->fetchAll();
+    
+    $recentSales = $pdo->query("
+        SELECT s.*, p.name as product_name, m.full_name as member_name 
+        FROM sales s 
+        JOIN products p ON s.product_id = p.id 
+        LEFT JOIN members m ON s.member_id = m.id 
+        ORDER BY s.id DESC LIMIT 10
+    ")->fetchAll();
 } catch (Exception $e) {
+    $members = [];
     $products = [];
     $recentSales = [];
 }
 ?>
+
+<!-- إضافة ملفات مكتبة Select2 للبحث السريع (CSS) -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
 
 <main class="app-main">
     <div class="app-content-header">
@@ -113,6 +136,19 @@ try {
                         </div>
                         <div class="card-body">
                             <form method="POST" action="">
+                                <!-- حقل اختيار العضو مع بحث تفاعلي بالاسم أو الرقم -->
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">اختر العضو</label>
+                                    <select name="member_id" id="memberSelect" class="form-select" required>
+                                        <option value="">-- ابحث بالاسم أو رقم الهاتف --</option>
+                                        <?php foreach ($members as $member): ?>
+                                            <option value="<?= $member['id'] ?>">
+                                                <?= htmlspecialchars($member['full_name']) ?> (<?= htmlspecialchars($member['phone']) ?>)
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+
                                 <div class="mb-3">
                                     <label class="form-label fw-bold">اختر المنتج / المكمل</label>
                                     <select name="product_id" class="form-select form-select-lg" required>
@@ -143,9 +179,10 @@ try {
                             <h3 class="card-title"><i class="bi bi-clock-history me-1"></i> آخر العمليات المباعة</h3>
                         </div>
                         <div class="card-body p-0">
-                            <table class="table table-striped m-0">
+                            <table class="table table-striped m-0 text-center">
                                 <thead>
                                     <tr>
+                                        <th>العضو</th>
                                         <th>المنتج</th>
                                         <th>الكمية</th>
                                         <th>الإجمالي</th>
@@ -161,7 +198,8 @@ try {
                                             $grand_total += $sale['total_price'];
                                         ?>
                                             <tr>
-                                                <td class="fw-bold"><?= htmlspecialchars($sale['product_name']) ?></td>
+                                                <td class="fw-bold text-primary"><?= htmlspecialchars($sale['member_name'] ?? 'عضو محذوف') ?></td>
+                                                <td><?= htmlspecialchars($sale['product_name']) ?></td>
                                                 <td><?= $sale['quantity'] ?></td>
                                                 <td class="text-success fw-bold"><?= number_format($sale['total_price'], 2) ?> ج.م</td>
                                                 <td><small class="text-muted"><?= date('H:i - Y/m/d', strtotime($sale['created_at'])) ?></small></td>
@@ -169,15 +207,15 @@ try {
                                         <?php endforeach; ?>
                                     <?php else: ?>
                                         <tr>
-                                            <td colspan="4" class="text-center py-3 text-muted">لا توجد مبيعات حالياً.</td>
+                                            <td colspan="5" class="text-center py-3 text-muted">لا توجد مبيعات حالياً.</td>
                                         </tr>
                                     <?php endif; ?>
                                 </tbody>
                                 <?php if (!empty($recentSales)): ?>
                                     <tfoot>
                                         <tr class="table-active">
-                                            <th colspan="2" class="text-end">الإجمالي الكلي (لآخر عمليات):</th>
-                                            <th colspan="2" class="text-success fw-bold fs-5"><?= number_format($grand_total, 2) ?> ج.م</th>
+                                            <th colspan="3" class="text-end">الإجمالي الكلي (لآخر عمليات):</th>
+                                            <th colspan="2" class="text-success fw-bold fs-5 text-center"><?= number_format($grand_total, 2) ?> ج.م</th>
                                         </tr>
                                     </tfoot>
                                 <?php endif; ?>
@@ -190,5 +228,18 @@ try {
         </div>
     </div>
 </main>
+
+<!-- تشغيل مكتبة Select2 وجعلها تفاعلية -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+  $(document).ready(function() {
+      $('#memberSelect').select2({
+          theme: 'bootstrap-5',
+          placeholder: '-- ابحث بالاسم أو رقم الهاتف --',
+          allowClear: true
+      });
+  });
+</script>
 
 <?php require_once __DIR__ . '/includes/footer.php'; ?>

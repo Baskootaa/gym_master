@@ -204,8 +204,16 @@ $currentPage = basename($_SERVER['PHP_SELF']);
 
         <li class="nav-header">الحساب والشخصي</li>
 
+        <!-- الحساب الشخصي -->
+        <li class="nav-item">
+          <a href="<?= BASE_URL ?>profile.php" class="nav-link <?= ($currentPage == 'profile.php') ? 'active' : '' ?>">
+            <i class="nav-icon bi bi-person-circle"></i>
+            <p>الحساب الشخصي</p>
+          </a>
+        </li>
+
         <!-- تسجيل الخروج -->
-        <li class="nav-item mt-3">
+        <li class="nav-item mt-2">
           <a href="<?= BASE_URL ?>logout.php" class="nav-link text-danger">
             <i class="nav-icon bi bi-box-arrow-right"></i>
             <p>تسجيل الخروج</p>
