@@ -14,11 +14,11 @@ if (isset($conn) && $conn instanceof mysqli && isset($pdo) && $pdo instanceof PD
     return;
 }
 
-// قراءة بيانات الاتصال المباشرة لـ Railway بدون استخدام root محلياً على السيرفر
+// قراءة بيانات الاتصال مباشرة من متغيرات البيئة على Render
 $host = getenv('DB_HOST') ?: 'yamanote.proxy.rlwy.net';
 $port = getenv('DB_PORT') ?: '50569';
 $dbname = getenv('DB_DATABASE') ?: 'railway';
-$username = getenv('DB_USERNAME') ?: 'railway'; // تم تعديل اليوزر ليتوافق مع السيرفر
+$username = getenv('DB_USERNAME') ?: 'railway';
 $password = getenv('DB_PASSWORD') ?: 'FEUxYixXuaqMLNnlpGZnYEiOtCxMBVq';
 
 // 1. الاتصال باستخدام MySQLi
