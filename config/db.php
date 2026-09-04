@@ -14,24 +14,12 @@ if (isset($conn) && $conn instanceof mysqli && isset($pdo) && $pdo instanceof PD
     return;
 }
 
-// قراءة الرابط المباشر من متغيرات البيئة على Render
-$database_url = getenv('MYSQL_URL');
-
-if ($database_url) {
-    $db_parts = parse_url($database_url);
-    $host = $db_parts['host'];
-    $port = $db_parts['port'] ?? 3306;
-    $username = $db_parts['user'];
-    $password = $db_parts['pass'];
-    $dbname = ltrim($db_parts['path'], '/');
-} else {
-    // القيم الاحتياطية لو اشتغل محلياً
-    $host = 'localhost';
-    $port = 3306;
-    $dbname = 'gym_master';
-    $username = 'root';
-    $password = '';
-}
+// حط البيانات مباشرة لتجنب مشاكل قراءة البيئة على السيرفر
+$host = 'yamanote.proxy.rlwy.net';
+$port = 50569;
+$dbname = 'railway';
+$username = 'root';
+$password = 'FEUxYixXuaqMLNnlpGZnYEiOtCxMBVq';
 
 // 1. الاتصال باستخدام MySQLi
 $conn = new mysqli($host, $username, $password, $dbname, (int)$port);
@@ -56,7 +44,7 @@ try {
     die("خطأ في الاتصال بقاعدة البيانات (PDO): " . $e->getMessage());
 }
 
-// دوال الصلاحيات الأساسية
+// دوال الصلاحيات
 if (!function_exists('isLoggedIn')) {
     function isLoggedIn() {
         return isset($_SESSION['user_id']);
