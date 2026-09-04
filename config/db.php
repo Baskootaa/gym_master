@@ -1,43 +1,39 @@
 <?php
 
-// تحديد BASE_URL ديناميكياً لتناسب البيئة المحلية (XAMPP) أو السحابية (Render)
 if ($_SERVER['HTTP_HOST'] == 'localhost' || strpos($_SERVER['HTTP_HOST'], '127.0.0.1') !== false) {
     define('BASE_URL', '/gym_master/');
 } else {
     define('BASE_URL', '/');
 }
 
-// بدء الجلسة إذا لم تكن مبدوءة
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// منع إعادة الاتصال والدوال إذا كانت معرفة مسبقاً
 if (isset($conn) && $conn instanceof mysqli && isset($pdo) && $pdo instanceof PDO) {
     return;
 }
 
-// قراءة بيانات الاتصال (من رابط MYSQL_URL المباشر لـ Railway أو المتغيرات الفردية أو المحلي)
+// قراءة الرابط المباشر من متغيرات البيئة على Render
 $database_url = getenv('MYSQL_URL');
 
 if ($database_url) {
     $db_parts = parse_url($database_url);
-    $host = $db_parts['host'] ?? 'yamanote.proxy.rlwy.net';
-    $port = $db_parts['port'] ?? 50569;
-    $username = $db_parts['user'] ?? 'root';
-    $password = $db_parts['pass'] ?? '';
-    $dbname = ltrim($db_parts['path'] ?? '/railway', '/');
+    $host = $db_parts['host'];
+    $port = $db_parts['port'] ?? 3306;
+    $username = $db_parts['user'];
+    $password = $db_parts['pass'];
+    $dbname = ltrim($db_parts['path'], '/');
 } else {
-    $host = getenv('DB_HOST') ?: 'yamanote.proxy.rlwy.net';
-    $port = getenv('DB_PORT') ?: '50569';
-    $dbname = getenv('DB_DATABASE') ?: 'railway';
-    $username = getenv('DB_USERNAME') ?: 'root';
-    $password = getenv('DB_PASSWORD') ?: 'FEUxYixXuaqMLNnlpGZnYEiOtCxMBVq';         
+    // القيم الاحتياطية لو اشتغل محلياً
+    $host = 'localhost';
+    $port = 3306;
+    $dbname = 'gym_master';
+    $username = 'root';
+    $password = '';
 }
 
-// ----------------------------------------------------
 // 1. الاتصال باستخدام MySQLi
-// ----------------------------------------------------
 $conn = new mysqli($host, $username, $password, $dbname, (int)$port);
 
 if ($conn->connect_error) {
@@ -46,9 +42,7 @@ if ($conn->connect_error) {
 
 $conn->set_charset("utf8mb4");
 
-// ----------------------------------------------------
 // 2. الاتصال باستخدام PDO
-// ----------------------------------------------------
 try {
     $pdo = new PDO("mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4", $username, $password, [
         PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
@@ -62,9 +56,7 @@ try {
     die("خطأ في الاتصال بقاعدة البيانات (PDO): " . $e->getMessage());
 }
 
-// ----------------------------------------------------
-// 3. دوال فحص الصلاحيات
-// ----------------------------------------------------
+// دوال الصلاحيات الأساسية
 if (!function_exists('isLoggedIn')) {
     function isLoggedIn() {
         return isset($_SESSION['user_id']);
