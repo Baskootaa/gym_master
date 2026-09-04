@@ -17,12 +17,23 @@ if (isset($conn) && $conn instanceof mysqli && isset($pdo) && $pdo instanceof PD
     return;
 }
 
-// قراءة بيانات الاتصال (من متغيرات البيئة أو القيم الافتراضية)
-$host = getenv('DB_HOST') ?: 'yamanote.proxy.rlwy.net';
-$port = getenv('DB_PORT') ?: '50569';
-$dbname = getenv('DB_DATABASE') ?: 'railway';
-$username = getenv('DB_USERNAME') ?: 'root';
-$password = getenv('DB_PASSWORD') ?: 'FEUxYixXuaqMLNnlpGZnYEiOtCxMBVq';         
+// قراءة بيانات الاتصال (من رابط MYSQL_URL المباشر لـ Railway أو المتغيرات الفردية أو المحلي)
+$database_url = getenv('MYSQL_URL');
+
+if ($database_url) {
+    $db_parts = parse_url($database_url);
+    $host = $db_parts['host'] ?? 'yamanote.proxy.rlwy.net';
+    $port = $db_parts['port'] ?? 50569;
+    $username = $db_parts['user'] ?? 'root';
+    $password = $db_parts['pass'] ?? '';
+    $dbname = ltrim($db_parts['path'] ?? '/railway', '/');
+} else {
+    $host = getenv('DB_HOST') ?: 'yamanote.proxy.rlwy.net';
+    $port = getenv('DB_PORT') ?: '50569';
+    $dbname = getenv('DB_DATABASE') ?: 'railway';
+    $username = getenv('DB_USERNAME') ?: 'root';
+    $password = getenv('DB_PASSWORD') ?: 'FEUxYixXuaqMLNnlpGZnYEiOtCxMBVq';         
+}
 
 // ----------------------------------------------------
 // 1. الاتصال باستخدام MySQLi
