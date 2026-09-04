@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Aug 22, 2026 at 11:26 PM
+-- Generation Time: Sep 04, 2026 at 10:51 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -103,6 +103,7 @@ CREATE TABLE `members` (
   `phone` varchar(20) NOT NULL,
   `email` varchar(150) DEFAULT NULL,
   `address` varchar(255) DEFAULT NULL,
+  `photo` varchar(255) DEFAULT NULL,
   `gender` enum('male','female') NOT NULL DEFAULT 'male',
   `birth_date` date DEFAULT NULL,
   `join_date` date NOT NULL,
@@ -118,13 +119,13 @@ CREATE TABLE `members` (
 -- Dumping data for table `members`
 --
 
-INSERT INTO `members` (`id`, `full_name`, `phone`, `email`, `address`, `gender`, `birth_date`, `join_date`, `notes`, `created_at`, `membership_type`, `subscription_start`, `subscription_end`, `status`) VALUES
-(3, 'احمد محمد', '01223232323', 'ahmed@gmail.com', 'الغربية مركز سمنود', 'male', '2005-01-11', '0000-00-00', NULL, '2026-08-04 15:35:15', 'شهري', '2026-08-04', '2026-09-05', 'نشط'),
-(5, 'كريم محمد', '01221212121', 'kareem@gmail.com', 'المنصورة طلخا', 'male', '2000-07-12', '0000-00-00', NULL, '2026-08-04 18:58:32', 'شهري', '2026-07-15', '2026-08-15', 'منتهي'),
-(9, 'محمود احمد', '01278787878', 'mahmoud@gmail.com', 'المنصورة طلخا', 'male', '2008-12-10', '0000-00-00', NULL, '2026-08-05 21:41:09', 'شهري', '2026-08-06', '2026-09-07', 'نشط'),
-(10, 'عمر محمد', '01289898989', 'omar@gmail.com', 'الغربية  سمنود', 'male', '2005-06-15', '0000-00-00', NULL, '2026-08-06 07:35:14', '3 شهور', '2026-08-06', '2026-11-06', 'نشط'),
-(11, 'ايمن محمد', '01236363636', NULL, 'المنصورة طلخا', 'male', '2006-10-11', '0000-00-00', NULL, '2026-08-06 07:43:38', 'شهري', '2026-07-03', '2026-08-03', 'expired'),
-(12, 'محمود كريم', '01258585858', 'mahmoud@gmail.com', 'الغربية  سمنود', 'male', '2005-12-15', '0000-00-00', NULL, '2026-08-06 09:58:59', 'شهري', '2026-08-06', '2026-09-07', 'نشط');
+INSERT INTO `members` (`id`, `full_name`, `phone`, `email`, `address`, `photo`, `gender`, `birth_date`, `join_date`, `notes`, `created_at`, `membership_type`, `subscription_start`, `subscription_end`, `status`) VALUES
+(3, 'احمد محمد', '01223232323', 'ahmed@gmail.com', 'الغربية مركز سمنود', NULL, 'male', '2005-01-11', '0000-00-00', NULL, '2026-08-04 15:35:15', 'شهري', '2026-08-04', '2026-09-05', 'نشط'),
+(5, 'كريم محمد', '01221212121', 'kareem@gmail.com', 'المنصورة طلخا', NULL, 'male', '2000-07-12', '0000-00-00', NULL, '2026-08-04 18:58:32', 'شهري', '2026-07-15', '2026-08-15', 'منتهي'),
+(9, 'محمود احمد', '01278787878', 'mahmoud@gmail.com', 'المنصورة طلخا', NULL, 'male', '2008-12-10', '0000-00-00', NULL, '2026-08-05 21:41:09', 'شهري', '2026-08-06', '2026-09-07', 'نشط'),
+(10, 'عمر محمد', '01289898989', 'omar@gmail.com', 'الغربية  سمنود', NULL, 'male', '2005-06-15', '0000-00-00', NULL, '2026-08-06 07:35:14', '3 شهور', '2026-08-06', '2026-11-06', 'نشط'),
+(11, 'ايمن محمد', '01236363636', NULL, 'المنصورة طلخا', NULL, 'male', '2006-10-11', '0000-00-00', NULL, '2026-08-06 07:43:38', 'شهري', '2026-07-03', '2026-08-03', 'expired'),
+(12, 'محمود كريم', '01258585858', 'mahmoud@gmail.com', 'الغربية  سمنود', NULL, 'male', '2005-12-15', '0000-00-00', NULL, '2026-08-06 09:58:59', 'شهري', '2026-08-06', '2026-09-07', 'نشط');
 
 -- --------------------------------------------------------
 
@@ -182,6 +183,7 @@ INSERT INTO `products` (`id`, `name`, `category`, `price`, `quantity`, `created_
 
 CREATE TABLE `sales` (
   `id` int(11) NOT NULL,
+  `member_id` int(11) DEFAULT NULL,
   `product_id` int(11) NOT NULL,
   `quantity` int(11) NOT NULL DEFAULT 1,
   `total_price` decimal(10,2) NOT NULL,
@@ -192,16 +194,16 @@ CREATE TABLE `sales` (
 -- Dumping data for table `sales`
 --
 
-INSERT INTO `sales` (`id`, `product_id`, `quantity`, `total_price`, `created_at`) VALUES
-(1, 1, 1, 10.00, '2026-08-02 18:22:24'),
-(2, 2, 1, 20.00, '2026-08-02 18:57:29'),
-(5, 3, 1, 20.00, '2026-08-04 18:55:35'),
-(6, 3, 1, 20.00, '2026-08-04 19:30:22'),
-(7, 1, 1, 10.00, '2026-08-05 14:03:17'),
-(8, 1, 1, 10.00, '2026-08-05 14:08:14'),
-(9, 1, 1, 10.00, '2026-08-05 14:09:02'),
-(10, 2, 1, 20.00, '2026-08-05 19:12:16'),
-(11, 2, 1, 20.00, '2026-08-06 10:00:48');
+INSERT INTO `sales` (`id`, `member_id`, `product_id`, `quantity`, `total_price`, `created_at`) VALUES
+(1, NULL, 1, 1, 10.00, '2026-08-02 18:22:24'),
+(2, NULL, 2, 1, 20.00, '2026-08-02 18:57:29'),
+(5, NULL, 3, 1, 20.00, '2026-08-04 18:55:35'),
+(6, NULL, 3, 1, 20.00, '2026-08-04 19:30:22'),
+(7, NULL, 1, 1, 10.00, '2026-08-05 14:03:17'),
+(8, NULL, 1, 1, 10.00, '2026-08-05 14:08:14'),
+(9, NULL, 1, 1, 10.00, '2026-08-05 14:09:02'),
+(10, NULL, 2, 1, 20.00, '2026-08-05 19:12:16'),
+(11, NULL, 2, 1, 20.00, '2026-08-06 10:00:48');
 
 -- --------------------------------------------------------
 
@@ -306,7 +308,7 @@ CREATE TABLE `trainers` (
   `specialty` varchar(150) NOT NULL,
   `phone` varchar(20) NOT NULL,
   `experience_years` int(10) UNSIGNED NOT NULL DEFAULT 0,
-  `photo` varchar(150) NOT NULL DEFAULT 'default-150x150.png',
+  `photo` longtext DEFAULT NULL,
   `status` enum('نشط','إجازة') NOT NULL DEFAULT 'نشط',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
@@ -333,6 +335,7 @@ CREATE TABLE `users` (
   `id` int(11) NOT NULL,
   `full_name` varchar(100) NOT NULL,
   `email` varchar(150) NOT NULL,
+  `photo` text DEFAULT NULL,
   `password` varchar(255) NOT NULL,
   `phone` varchar(50) DEFAULT NULL,
   `role` enum('admin','staff','user') NOT NULL DEFAULT 'staff',
@@ -343,11 +346,11 @@ CREATE TABLE `users` (
 -- Dumping data for table `users`
 --
 
-INSERT INTO `users` (`id`, `full_name`, `email`, `password`, `phone`, `role`, `created_at`) VALUES
-(1, 'mazen elbasyouny', 'mazen@gmail.com', '$2y$10$uccy7q3Yvw4M6EhI1Ig68uXVksguYLG9iO6QQg83nVLXqKwBthZyC', '01228249057', 'admin', '2026-08-04 14:36:03'),
-(2, 'kareem mohamed', 'kareem@gmail.com', '$2y$10$l.DG5Czzd0hEdvSl0V.E1eVuYjIP02acnG7Zqq0tJ4G4kMfKIuqf.', '01225252525', 'user', '2026-08-04 19:27:13'),
-(3, 'ismail ahmed', 'ismail@gmail.com', '$2y$10$GufJZlZcvIVFjsoJp6V4Ie9ToM770uK2yJN7dJksCTuFw7txwZhBW', '01252525252', 'staff', '2026-08-05 16:54:27'),
-(5, 'mahmoud mohamed', 'mahmoud@gmail.com', '$2y$10$BsWfse3A2DEoMQ45YptpRuTamwvZSa3Hcod67Z0sfUR1tBNLo.ru.', '01278787878', 'user', '2026-08-05 21:05:52');
+INSERT INTO `users` (`id`, `full_name`, `email`, `photo`, `password`, `phone`, `role`, `created_at`) VALUES
+(1, 'mazen elbasyouny', 'mazen@gmail.com', NULL, '$2y$10$uccy7q3Yvw4M6EhI1Ig68uXVksguYLG9iO6QQg83nVLXqKwBthZyC', '01228249057', 'admin', '2026-08-04 14:36:03'),
+(2, 'kareem mohamed', 'kareem@gmail.com', NULL, '$2y$10$l.DG5Czzd0hEdvSl0V.E1eVuYjIP02acnG7Zqq0tJ4G4kMfKIuqf.', '01225252525', 'user', '2026-08-04 19:27:13'),
+(3, 'ismail ahmed', 'ismail@gmail.com', NULL, '$2y$10$GufJZlZcvIVFjsoJp6V4Ie9ToM770uK2yJN7dJksCTuFw7txwZhBW', '01252525252', 'staff', '2026-08-05 16:54:27'),
+(5, 'mahmoud mohamed', 'mahmoud@gmail.com', NULL, '$2y$10$BsWfse3A2DEoMQ45YptpRuTamwvZSa3Hcod67Z0sfUR1tBNLo.ru.', '01278787878', 'user', '2026-08-05 21:05:52');
 
 --
 -- Indexes for dumped tables
