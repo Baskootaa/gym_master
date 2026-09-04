@@ -14,12 +14,12 @@ if (isset($conn) && $conn instanceof mysqli && isset($pdo) && $pdo instanceof PD
     return;
 }
 
-// حط البيانات مباشرة لتجنب مشاكل قراءة البيئة على السيرفر
-$host = 'yamanote.proxy.rlwy.net';
-$port = 50569;
-$dbname = 'railway';
-$username = 'root';
-$password = 'FEUxYixXuaqMLNnlpGZnYEiOtCxMBVq';
+// قراءة بيانات الاتصال المباشرة لـ Railway بدون استخدام root محلياً على السيرفر
+$host = getenv('DB_HOST') ?: 'yamanote.proxy.rlwy.net';
+$port = getenv('DB_PORT') ?: '50569';
+$dbname = getenv('DB_DATABASE') ?: 'railway';
+$username = getenv('DB_USERNAME') ?: 'railway'; // تم تعديل اليوزر ليتوافق مع السيرفر
+$password = getenv('DB_PASSWORD') ?: 'FEUxYixXuaqMLNnlpGZnYEiOtCxMBVq';
 
 // 1. الاتصال باستخدام MySQLi
 $conn = new mysqli($host, $username, $password, $dbname, (int)$port);
