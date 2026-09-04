@@ -21,11 +21,11 @@ if (isset($conn) && $conn instanceof mysqli && isset($pdo) && $pdo instanceof PD
     return;
 }
 
-// بيانات الاتصال بقاعدة البيانات (تم التحديث لدعم بيئة السحاب مثل Render أو الاستضافات الخارجية)
-$host = getenv('DB_HOST') ?: 'localhost';
-$dbname   = getenv('DB_DATABASE') ?: 'gym_master'; 
-$username = getenv('DB_USERNAME') ?: 'gym_user';
-$password = getenv('DB_PASSWORD') ?: 'gym12345';        
+// بيانات الاتصال بقاعدة البيانات (محدثة لاستضافة InfinityFree الخارجية)
+$host = getenv('DB_HOST') ?: 'sql313.infinityfree.com';
+$dbname   = getenv('DB_DATABASE') ?: 'if0_42679699_gym_master'; 
+$username = getenv('DB_USERNAME') ?: 'if0_42679699';
+$password = getenv('DB_PASSWORD') ?: '42bbahd8be9SL1h';        
 
 // ----------------------------------------------------
 // 1. الاتصال باستخدام MySQLi (لتوافق متغير $conn)
