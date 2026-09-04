@@ -21,16 +21,17 @@ if (isset($conn) && $conn instanceof mysqli && isset($pdo) && $pdo instanceof PD
     return;
 }
 
-// بيانات الاتصال بقاعدة البيانات (محدثة لاستضافة InfinityFree الخارجية)
-$host = getenv('DB_HOST') ?: 'sql313.infinityfree.com';
-$dbname   = getenv('DB_DATABASE') ?: 'if0_42679699_gym_master'; 
-$username = getenv('DB_USERNAME') ?: 'if0_42679699';
-$password = getenv('DB_PASSWORD') ?: '42bbahd8be9SL1h';        
+// بيانات الاتصال بقاعدة البيانات (محدثة لدعم Railway مع الـ Port)
+$host = getenv('DB_HOST') ?: 'yamanote.proxy.rlwy.net';
+$port = getenv('DB_PORT') ?: '50569';
+$dbname = getenv('DB_DATABASE') ?: 'railway';
+$username = getenv('DB_USERNAME') ?: 'root';
+$password = getenv('DB_PASSWORD') ?: 'FEUxYixXuaqMLNnlpGZnYEiOtCxMBVq';         
 
 // ----------------------------------------------------
-// 1. الاتصال باستخدام MySQLi (لتوافق متغير $conn)
+// 1. الاتصال باستخدام MySQLi (لتوافق متغير $conn مع الـ Port)
 // ----------------------------------------------------
-$conn = new mysqli($host, $username, $password, $dbname);
+$conn = new mysqli($host, $username, $password, $dbname, (int)$port);
 
 if ($conn->connect_error) {
     die("خطأ في الاتصال بقاعدة البيانات (MySQLi): " . $conn->connect_error);
@@ -40,10 +41,10 @@ if ($conn->connect_error) {
 $conn->set_charset("utf8mb4");
 
 // ----------------------------------------------------
-// 2. الاتصال باستخدام PDO (لتوافق متغير $pdo)
+// 2. الاتصال باستخدام PDO (لتوافق متغير $pdo مع الـ Port)
 // ----------------------------------------------------
 try {
-    $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8mb4", $username, $password, [
+    $pdo = new PDO("mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4", $username, $password, [
         PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         PDO::ATTR_EMULATE_PREPARES   => false,
