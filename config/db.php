@@ -15,11 +15,11 @@ if (isset($conn) && $conn instanceof mysqli && isset($pdo) && $pdo instanceof PD
 }
 
 // قراءة بيانات الاتصال مباشرة من متغيرات البيئة على Render مع استخدام root كقيمة افتراضية
-$host = 'yamanote.proxy.rlwy.net';
-$port = '50569';
-$dbname = 'railway';
-$username = 'root';
-$password = 'CMwUVpdxANBfjroftXlHTrxWJwsvtMy';
+$host = getenv('DB_HOST') ?: 'yamanote.proxy.rlwy.net';
+$port = getenv('DB_PORT') ?: '50569';
+$dbname = getenv('DB_NAME') ?: 'railway';
+$username = getenv('DB_USER') ?: 'root';
+$password = getenv('DB_PASS') ?: 'CMwUVpdxANBfjroftXlHTrxWJwsvtMy';
 // 1. الاتصال باستخدام MySQLi
 $conn = new mysqli($host, $username, $password, $dbname, (int)$port);
 
