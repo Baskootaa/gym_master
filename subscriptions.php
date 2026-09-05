@@ -146,8 +146,8 @@ require_once 'includes/sidebar.php';
                   </div>
                   <div class="mb-3">
                     <label class="form-label">تاريخ البداية</label>
-                    <input type="date" name="start_date" class="form-control" required
-                           value="<?= date('Y-m-d') ?>">
+                    <input type="text" name="start_date" class="form-control datepicker" required
+                           value="<?= date('Y-m-d') ?>" placeholder="DD/MM/YYYY">
                   </div>
                   <button type="submit" class="btn btn-primary w-100">
                     <i class="bi bi-check-circle me-1"></i> حفظ الاشتراك
@@ -232,5 +232,19 @@ require_once 'includes/sidebar.php';
     </div>
   </div>
 </main>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    if (typeof flatpickr !== 'undefined') {
+        flatpickr(".datepicker", {
+    dateFormat: "Y-m-d",
+    altInput: true,
+    altFormat: "d/m/Y",
+    allowInput: true,
+    altInputClass: "form-control text-start", // بتجبر النص يضبط اتجاهه
+});
+    }
+});
+</script>
 
 <?php require_once 'includes/footer.php'; ?>

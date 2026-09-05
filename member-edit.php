@@ -37,6 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_member'])) {
     $status             = $_POST['status'] ?? 'active';
     $notes              = trim($_POST['notes'] ?? '');
     $photo_data         = $_POST['photo'] ?? ''; 
+    $join_date          = $_POST['join_date'] ?? date('Y-m-d');
 
     if ($full_name === '' || $phone === '' || $subscription_start === '' || $subscription_end === '') {
         $_SESSION['error'] = "من فضلك املأ كل الحقول المطلوبة (الاسم، الهاتف، تاريخ بداية ونهاية الاشتراك).";
@@ -65,13 +66,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_member'])) {
             $stmt = $pdo->prepare(
                 "UPDATE members SET full_name = ?, phone = ?, email = ?, gender = ?, birth_date = ?,
                  address = ?, membership_type = ?, subscription_start = ?, subscription_end = ?,
-                 status = ?, notes = ?, photo = ? WHERE id = ?"
+                 status = ?, notes = ?, photo = ?, join_date = ? WHERE id = ?"
             );
             $stmt->execute([
                 $full_name, $phone, ($email !== '' ? $email : null), $gender,
                 ($birth_date !== '' ? $birth_date : null), ($address !== '' ? $address : null),
                 $membership_type, $subscription_start, $subscription_end, $status,
-                ($notes !== '' ? $notes : null), $final_photo, $editId,
+                ($notes !== '' ? $notes : null), $final_photo, ($join_date !== '' ? $join_date : date('Y-m-d')), $editId,
             ]);
             $_SESSION['message'] = "تم تعديل بيانات العضو بنجاح!";
             header("Location: members.php");
@@ -200,7 +201,7 @@ require_once __DIR__ . '/includes/sidebar.php';
                             </div>
                         </div>
                         <div class="row">
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-4 mb-3">
                                 <label class="form-label">البريد الإلكتروني</label>
                                 <input type="email" name="email" class="form-control"
                                        value="<?= htmlspecialchars($member['email'] ?? '') ?>">
@@ -214,13 +215,18 @@ require_once __DIR__ . '/includes/sidebar.php';
                             </div>
                             <div class="col-md-3 mb-3">
                                 <label class="form-label">تاريخ الميلاد</label>
-                                <input type="date" name="birth_date" class="form-control"
-                                       value="<?= htmlspecialchars($member['birth_date'] ?? '') ?>">
+                                <input type="text" name="birth_date" class="form-control datepicker"
+                                       value="<?= htmlspecialchars($member['birth_date'] ?? '') ?>" placeholder="DD/MM/YYYY">
+                            </div>
+                            <div class="col-md-2 mb-3">
+                                <label class="form-label">تاريخ الانضمام</label>
+                                <input type="text" name="join_date" class="form-control datepicker" 
+                                       value="<?= htmlspecialchars($member['join_date'] ?? date('Y-m-d')) ?>" placeholder="DD/MM/YYYY">
                             </div>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">العنوان</label>
-                            <input type="text" name="address" class="form-control"
+                            <input type="text" name="address" class="form-control" 
                                    value="<?= htmlspecialchars($member['address'] ?? '') ?>">
                         </div>
                         <hr>
@@ -238,13 +244,13 @@ require_once __DIR__ . '/includes/sidebar.php';
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label class="form-label">تاريخ بداية الاشتراك <span class="text-danger">*</span></label>
-                                <input type="date" name="subscription_start" class="form-control"
-                                       value="<?= htmlspecialchars($member['subscription_start'] ?? '') ?>" required>
+                                <input type="text" name="subscription_start" class="form-control datepicker" 
+                                       value="<?= htmlspecialchars($member['subscription_start'] ?? '') ?>" placeholder="DD/MM/YYYY" required>
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label class="form-label">تاريخ نهاية الاشتراك <span class="text-danger">*</span></label>
-                                <input type="date" name="subscription_end" class="form-control"
-                                       value="<?= htmlspecialchars($member['subscription_end'] ?? '') ?>" required>
+                                <input type="text" name="subscription_end" class="form-control datepicker" 
+                                       value="<?= htmlspecialchars($member['subscription_end'] ?? '') ?>" placeholder="DD/MM/YYYY" required>
                             </div>
                         </div>
                         <div class="row">
@@ -286,6 +292,14 @@ require_once __DIR__ . '/includes/sidebar.php';
 
 <script>
 document.addEventListener("DOMContentLoaded", function () {
+    // تفعيل مكتبة التقويم لتعرض DD/MM/YYYY وترسل Y-m-d للداتابيز
+    flatpickr(".datepicker", {
+        dateFormat: "Y-m-d",
+        altInput: true,
+        altFormat: "d/m/Y",
+        allowInput: true
+    });
+
     const video = document.getElementById('camera-stream');
     const canvas = document.getElementById('camera-canvas');
     const openCameraBtn = document.getElementById('open-camera-btn');

@@ -2,7 +2,6 @@
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-
 require_once __DIR__ . '/config/db.php';
 
 if (function_exists('checkAccess')) {
@@ -167,11 +166,14 @@ try {
                                             </td>
                                             <?php if ($isStaffOrAdmin): ?>
                                                 <td class="text-center">
-                                                    <a href="./member-edit.php?id=<?= (int) $m['id'] ?>"
+                                                    <a href="members-show.php?id=<?= (int)$m['id'] ?>" class="btn btn-info btn-sm text-white" title="عرض التفاصيل">
+                                                        <i class="bi bi-eye"></i>
+                                                    </a>
+                                                    <a href="./member-edit.php?id=<?= (int)$m['id'] ?>"
                                                        class="btn btn-sm btn-outline-warning" title="تعديل">
                                                         <i class="bi bi-pencil-square"></i>
                                                     </a>
-                                                    <a href="./member-delete.php?id=<?= (int) $m['id'] ?>"
+                                                    <a href="./member-delete.php?id=<?= (int)$m['id'] ?>"
                                                        class="btn btn-sm btn-outline-danger" title="حذف"
                                                        onclick="return confirm('هل أنت متأكد من حذف هذا العضو؟');">
                                                         <i class="bi bi-trash"></i>

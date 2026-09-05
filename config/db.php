@@ -1,4 +1,8 @@
 <?php
+    
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 
 if ($_SERVER['HTTP_HOST'] == 'localhost' || strpos($_SERVER['HTTP_HOST'], '127.0.0.1') !== false) {
     define('BASE_URL', '/gym_master/');
@@ -15,13 +19,12 @@ if (isset($conn) && $conn instanceof mysqli && isset($pdo) && $pdo instanceof PD
 }
 
 // قراءة بيانات الاتصال مباشرة من متغيرات البيئة على Render مع استخدام root كقيمة افتراضية
-$host = getenv('DB_HOST') ?: 'yamanote.proxy.rlwy.net';
-$port = getenv('DB_PORT') ?: '50569';
-$dbname = getenv('DB_NAME') ?: 'railway';
-$username = getenv('DB_USER') ?: 'root';
-$password = getenv('DB_PASS') ?: 'CMwUVpdxANBfjroftXlHTrxWJwsvtMy';
+$host = 'sql313.infinityfree.com';
+$dbname = 'if0_42679699_gym_master';
+$username = 'if0_42679699';
+$password = '42bbahd8be9SL1h'; // تأكد إن الباسورد ده هو الباسورد الحالي لحساب الـ MySQL في اللوحة
 // 1. الاتصال باستخدام MySQLi
-$conn = new mysqli($host, $username, $password, $dbname, (int)$port);
+$conn = new mysqli($host, $username, $password, $dbname );
 
 if ($conn->connect_error) {
     die("خطأ في الاتصال بقاعدة البيانات (MySQLi): " . $conn->connect_error);
@@ -31,7 +34,7 @@ $conn->set_charset("utf8mb4");
 
 // 2. الاتصال باستخدام PDO
 try {
-    $pdo = new PDO("mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4", $username, $password, [
+    $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8mb4", $username, $password, [
         PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         PDO::ATTR_EMULATE_PREPARES   => false,
